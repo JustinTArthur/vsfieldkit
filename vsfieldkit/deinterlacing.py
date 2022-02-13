@@ -28,9 +28,6 @@ def scan_interlaced(
     deinterlacing. Like bob deinterlacing, it doubles the amount of frames
     (and frame rate accordingly) produced to portray the moments represented in
     the interlaced footage."""
-    # Since output would not be treated as interlaced anymore, it doesn't make
-    # sense to maintain interlaced field chroma subsampling.
-
     # TFF (w is warmup field)
     # Top field source: 1 1 2 2 3 3 4 4 5 5
     # Bot field source: w 1 1 2 2 3 3 4 4 5
