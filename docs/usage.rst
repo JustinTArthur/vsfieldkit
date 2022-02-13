@@ -31,8 +31,68 @@ Dependencies
 ^^^^^^^^^^^^
 Just VapourSynth.
 
-Deinterlacing
--------------
+Functions
+---------
+.. autofunction:: vsfieldkit.assume_bff(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.assume_progressive(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.assume_tff(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.double(clip: VideoNode) -> VideoNode
+.. function:: vsfieldkit.group_by_combed( \
+        clip: VideoNode \
+    ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
+
+    Assuming the passed-in clip was processed by a filter that performs
+    comb detection, this splits the clip into segments based on whether they
+    are combed or not. The values it generates are True, False, or ``None`` if
+    it was marked combed, not combed, or not marked as well as the segment of
+    the clip.
+
+    This does not have any built-in comb detection.
+
+    .. code-block:: python
+        :caption: Example
+
+        progressive_clips = []
+        detelecined = tivtc.TFM(clip, PP=1)
+        for combed, segment in vsfieldkit.group_by_combed(detelecined):
+            if combed:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=False)
+                )
+            else:
+                progressive_clips.append(
+                    tivtc.TDecimate(segment, tff=False)
+                )
+        vs.core.std.Splice(progressive_clips).set_output()
+
+.. function:: vsfieldkit.group_by_field_order( \
+        clip: VideoNode \
+    ) -> Iterator[Tuple[Union[FieldBased, None], VideoNode]]
+
+    Generates field orders and clips from the passed in clip split up by
+    changes in field order. Field order is expressed as a
+    :py:class:`FieldBased` enumeration or ``None`` if field order is not
+    applicable or not available.
+
+    .. code-block:: python
+        :caption: Example
+
+        progressive_clips = []
+        for order, segment in vsfieldkit.group_by_field_order(clip):
+            if order == vs.FIELD_TOP:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=True)
+                )
+            elif order == vs.FIELD_BOTTOM:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=False)
+                )
+            elif order == vs.PROGRESSIVE:
+                progressive_clips.append(
+                    vsfieldkit.double(segment)
+                )
+        vs.core.std.Splice(progressive_clips).set_output()
+
 .. function:: vsfieldkit.scan_interlaced( \
         clip: VideoNode, \
         warmup_clip: Optional[VideoNode] = None, \
@@ -94,6 +154,9 @@ Deinterlacing
         different moment, third into the fourth… resulting in thicker visual
         comb lines and lines having color untrue to their source material.
 
+        Enumerations are available on the vsfieldkit top level module and the
+        :py:class:`~vsfieldkit.ChromaSubsampleScanning` enum.
+
     :param str dither_type:
         If video is processed at a higher bit depth internally before being
         returned to an original depth of less than 16 bits per plane, this
@@ -106,6 +169,9 @@ Deinterlacing
         :py:attr:`~vsfieldkit.InterlacedScanPostProcessor.BLEND_VERTICALLY` is
         available.
 
+        Enumerations are available on the vsfieldkit top level module and the
+        :py:class:`~vsfieldkit.InterlacedScanPostProcessor` enum.
+
 .. autoclass:: vsfieldkit.ChromaSubsampleScanning
     :members:
     :undoc-members:
@@ -113,65 +179,3 @@ Deinterlacing
 .. autoclass:: vsfieldkit.InterlacedScanPostProcessor
     :members:
     :undoc-members:
-
-Utility Functions
------------------
-.. autofunction:: vsfieldkit.assume_bff
-.. autofunction:: vsfieldkit.assume_progressive
-.. autofunction:: vsfieldkit.assume_tff
-.. autofunction:: vsfieldkit.double
-.. function:: vsfieldkit.group_by_combed( \
-        clip: VideoNode \
-    ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
-
-    Assuming the passed-in clip was processed by a filter that performs
-    comb detection, this splits the clip into segments based on whether they
-    are combed or not. The values it generates are True, False, or ``None`` if
-    it was marked combed, not combed, or not marked as well as the segment of
-    the clip.
-
-    This does not have any built-in comb detection.
-
-    .. code-block:: python
-        :caption: Example
-
-        progressive_clips = []
-        detelecined = tivtc.TFM(clip, PP=1)
-        for combed, segment in vsfieldkit.group_by_combed(detelecined):
-            if combed:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=False)
-                )
-            else:
-                progressive_clips.append(
-                    tivtc.TDecimate(segment, tff=False)
-                )
-        vs.core.std.Splice(progressive_clips).set_output()
-
-.. function:: vsfieldkit.group_by_field_order( \
-        clip: VideoNode \
-    ) -> Iterator[Tuple[Union[FieldBased, None], VideoNode]]
-
-    Generates field orders and clips from the passed in clip split up by
-    changes in field order. Field order is expressed as a
-    :py:class:`FieldBased` enumeration or ``None`` if field order is not
-    applicable or not available.
-
-    .. code-block:: python
-        :caption: Example
-
-        progressive_clips = []
-        for order, segment in vsfieldkit.group_by_field_order(clip):
-            if order == vs.FIELD_TOP:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=True)
-                )
-            elif order == vs.FIELD_BOTTOM:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=False)
-                )
-            elif order == vs.PROGRESSIVE:
-                progressive_clips.append(
-                    vsfieldkit.double(segment)
-                )
-        vs.core.std.Splice(progressive_clips).set_output()

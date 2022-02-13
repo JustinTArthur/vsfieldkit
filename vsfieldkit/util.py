@@ -11,14 +11,22 @@ FORMAT_INTRINSICS = (
 )
 
 
-def assume_bff(clip: VideoNode):
+def assume_bff(clip: VideoNode) -> VideoNode:
+    """Returns a new clip where every frame is marked as interlaced in
+    bottom-field-first order. Only changes metadata, does not adjust the clip
+    content or re-arrange chroma samples.
+    """
     return clip.std.SetFrameProp(
         prop='_FieldBased',
         intval=FieldBased.FIELD_BOTTOM.value
     )
 
 
-def assume_tff(clip: VideoNode):
+def assume_tff(clip: VideoNode) -> VideoNode:
+    """Returns a new clip where every frame is marked as interlaced in
+    top-field-first order. Only changes metadata, does not adjust the clip
+    content or re-arrange chroma samples.
+    """
     return clip.std.SetFrameProp(
         prop='_FieldBased',
         intval=FieldBased.FIELD_TOP.value
@@ -26,6 +34,10 @@ def assume_tff(clip: VideoNode):
 
 
 def assume_progressive(clip: VideoNode) -> VideoNode:
+    """Returns a new clip where every frame is marked as progressive. Only
+    changes metadata, does not adjust the clip content or re-arrange chroma
+    samples.
+    """
     return clip.std.SetFrameProp(
         prop='_FieldBased',
         intval=FieldBased.FIELD_PROGRESSIVE.value
