@@ -1,6 +1,6 @@
 vsfieldkit
 ==========
-A Collection of functions for working with interlaced content in VapourSynth.
+A collection of functions for working with interlaced content in VapourSynth.
 
 .. toctree::
     :maxdepth: 2
