@@ -54,22 +54,7 @@ def group_by_combed(
     comb detection, this splits the clip into segments based on whether they
     are combed or not. The values it generates are True, False, or None if it
     was marked combed, not combed, or not marked as well as the segment of the
-    clip.
-
-    This does not have any built-in comb detection.
-
-    Example:
-
-        progressive_clips = []
-        detelecined = tivtc.TFM(clip)
-        for is_combed, segment in vsfieldkit.group_by_combed(detelecined):
-            if is_combed:
-                progressive_clips.append(havsfunc.QTGMC(segment, TFF=False))
-            else:
-                progressive_clips.append(tivtc.TDecimate(segment, tff))
-        vs.core.std.Splice(progressive_clips).set_output()
-
-    """
+    clip."""
     last_combed = ...
     last_change = 0
     for n, frame in enumerate(clip.frames()):
@@ -90,21 +75,7 @@ def group_by_field_order(
     Generates field orders and clips from the passed in clip split up by
     changes in field order. Field order is expressed as a
     vapoursynth.FieldBased enumeration or None if field order is not
-    applicable or not available.
-
-    Example:
-
-        progressive_clips = []
-        for field_based, segment in vsfieldkit.group_by_field_order(clip):
-            if field_based == vs.FIELD_TOP:
-                progressive_clips.append(havsfunc.QTGMC(segment, TFF=True))
-            elif field_based == vs.FIELD_BOTTOM:
-                progressive_clips.append(havsfunc.QTGMC(segment, TFF=False))
-            elif field_based == vs.PROGRESSIVE:
-                progressive_clips.append(vsfieldkit.double(segment))
-        vs.core.std.Splice(progressive_clips).set_output()
-
-    """
+    applicable or not available."""
     last_order = ...
     last_change = 0
     for n, frame in enumerate(clip.frames()):

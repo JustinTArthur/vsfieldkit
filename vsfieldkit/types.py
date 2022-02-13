@@ -5,7 +5,10 @@ class ChromaSubsampleScanning(Enum):
     SCAN_BLENDED = 'SCAN_BLENDED'
     """Internally, original field chroma is upsampled to have single line
     color. The final image is then resampled to the original subsampling
-    format, causing each line's color to be blended with its neighbours."""
+    format, causing each line's color to be blended with its neighbours.
+    Currently the blending is performed *after* post-processing to allow
+    post-processors access to the upsampled chroma data.
+    """
 
     SCAN_LATEST = 'SCAN_LATEST'
     """The field that is new in a frame supplies the color for all lines of

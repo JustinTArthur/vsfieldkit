@@ -1,8 +1,8 @@
 from vsfieldkit.deinterlacing import scan_interlaced
-from vsfieldkit.util import (assume_bff, assume_progressive, assume_tff,
-                             double, group_by_combed, group_by_field_order)
 from vsfieldkit.types import (ChromaSubsampleScanning,
                               InterlacedScanPostProcessor)
+from vsfieldkit.util import (assume_bff, assume_progressive, assume_tff,
+                             double, group_by_combed, group_by_field_order)
 
 VERSION = 0, 1, 0
 
