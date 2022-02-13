@@ -1,6 +1,7 @@
 # vsfieldkit
 Collection of functions for working with interlaced content in VapourSynth. It
-does not have any hard dependencies outside of VapourSynth.
+does not have any hard dependencies outside of
+[VapourSynth](http://www.vapoursynth.com/).
 
 Included functions:  
 `vsfieldkit.assume_bff(clip)`  
