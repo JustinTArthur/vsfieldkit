@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from sys import stderr
 from typing import Callable, Optional
 
 from vapoursynth import YUV, ColorFamily, FieldBased, VideoNode, core
@@ -72,7 +71,6 @@ def scan_interlaced(
     # To achieve the updating and repeating of fields, we can rely on the same
     # functions used to interlace. We just need to ensure every field is
     # interlaced twice except for the last one.
-    print(f'original_fields: {original_fields.fps}', file=stderr)
     recycled_fields = original_fields.std.SelectEvery(
         cycle=2,
         offsets=(0, 1, 0, 1),
