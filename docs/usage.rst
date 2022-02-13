@@ -47,10 +47,10 @@ Deinterlacing
 
     Returns a new clip where interlaced fields from the original clip are
     painted onto each frame in their correct position moment-by-moment like
-    an interlaced scan display would. This is sometimes referred to as
-    phosphor deinterlacing, display interlacing, or simply interlaced scan.
-    Like bob deinterlacing, it doubles the amount of frames used produced to
-    portray the moments represented in the interlaced footage.
+    an interlaced scan display would. This is sometimes referred to as display
+    interlacing, phosphor deinterlacing, or simply interlaced scan.
+    Like bob deinterlacing, it doubles the amount of frames used to portray
+    the moments represented in the interlaced footage.
 
     Interlaced content is typically stored or transmitted with two moments
     interlaced into one frame and each moment only appearing in that one frame.
@@ -81,7 +81,7 @@ Deinterlacing
     :param bool tff:
         Specifies the field order to assume when scanning progressive footage
         or clips without field order marking. ``True`` assumes top-field-first.
-        ``False`` for bottom-field first. Applies to the main clip and/or the
+        ``False`` for bottom-field-first. Applies to the main clip and/or the
         warmup clip if either have not-explicitly-interlaced frames.
 
     :param ChromaSubsampleScanning chroma_subsample_scanning:
@@ -97,7 +97,7 @@ Deinterlacing
     :param str dither_type:
         If video is processed at a higher bit depth internally before being
         returned to an original depth of less than 16 bits per plane, this
-        dithering method will be used to avoid banding or other unnatural
+        dithering method will be used to avoid banding and other unnatural
         artifacts caused by rounding.
 
     :param Sequence[InterlacedScanPostProcessor] post_processing:
