@@ -1,2 +1,1 @@
 Sphinx==4.4.0
-VapourSynth==57

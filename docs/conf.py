@@ -27,6 +27,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'vapoursynth': ('http://www.vapoursynth.com/doc', None)
 }
+autodoc_mock_imports = ['vapoursynth']
 
 
 # -- Options for HTML output -------------------------------------------------
