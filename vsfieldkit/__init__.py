@@ -5,7 +5,7 @@ from vsfieldkit.types import (ChromaSubsampleScanning,
 from vsfieldkit.util import (assume_bff, assume_progressive, assume_tff,
                              double, group_by_combed, group_by_field_order)
 
-VERSION = 0, 1, 0
+VERSION = 0, 2, 0
 
 SCAN_BLENDED = ChromaSubsampleScanning.SCAN_BLENDED
 SCAN_LATEST = ChromaSubsampleScanning.SCAN_LATEST
