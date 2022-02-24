@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Callable, Optional
 
-from vapoursynth import YUV, ColorFamily, FieldBased, VideoNode, core
+from vapoursynth import ColorFamily, VideoNode, core
 
 from vsfieldkit.types import (ChromaSubsampleScanning,
                               InterlacedScanPostProcessor)
