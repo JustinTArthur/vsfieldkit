@@ -1,3 +1,4 @@
+from vsfieldkit.deinterlacing import bob
 from vsfieldkit.scanning import scan_interlaced
 from vsfieldkit.types import (ChromaSubsampleScanning,
                               InterlacedScanPostProcessor)

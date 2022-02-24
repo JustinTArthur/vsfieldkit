@@ -34,9 +34,50 @@ Just VapourSynth.
 Functions
 ---------
 .. autofunction:: vsfieldkit.assume_bff(clip: VideoNode) -> VideoNode
+
 .. autofunction:: vsfieldkit.assume_progressive(clip: VideoNode) -> VideoNode
+
 .. autofunction:: vsfieldkit.assume_tff(clip: VideoNode) -> VideoNode
+
+.. function:: vsfieldkit.bob( \
+        clip: VideoNode, \
+        tff: Optional[bool] = None, \
+        keep_field_property: bool = True, \
+        kernel: Callable = core.resize.Spline36, \
+        dither_type: str = 'random' \
+    ) -> VideoNode
+
+    A simple bob deinterlacer. Returns a clip of progressive frames, each
+    consisting of a field from the original interlaced clip in order of its
+    original capture. As interlaced fields have half the resolution of a given
+    moment, the new frames are stretched up to the original clip's height.
+
+    This is similar to :py:func:`havsfunc.Bob` except it uses VapourSynth's
+    standard resizing/dithering features instead of those from the 3rd party
+    fmtconv plugin.
+
+    :param VideoNode clip: Video with interlaced frames to bob into
+        the resulting clip.
+
+    :param bool tff:
+        Specifies the field order to assume when scanning progressive footage
+        or clips without field order marking. ``True`` assumes top-field-first.
+        ``False`` for bottom-field-first.
+
+    :param typing.Callable kernel:
+        Resizing/resampling function from vapoursynth.core.resize to use to
+        stretch the fields to the target frame height. Defaults to
+        :py:func:`resize.Spline36`.
+
+    :param str dither_type:
+        If video is processed at a higher bit depth internally before being
+        returned to an original depth of less than 16 bits per plane, this
+        dithering method will be used to avoid banding and other unnatural
+        artifacts caused by rounding at low bit rate.
+
+
 .. autofunction:: vsfieldkit.double(clip: VideoNode) -> VideoNode
+
 .. function:: vsfieldkit.group_by_combed( \
         clip: VideoNode \
     ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
