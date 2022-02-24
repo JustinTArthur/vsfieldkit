@@ -79,10 +79,11 @@ Why is interlaced tech still used in Modern Times?
 --------------------------------------------------
 It's the only way to transport high-frame-rate material to the home.
 Modern digital theatre systems are now capable of receiving 48 progressive
-fps content, but home entertainment systems don't have a way to take in
-progressive 48 fps, 50 fps, or 60 fps material. If you wish to convey smooth
-motion of events that were captured or rendered in high speed, you can still do
-one of these at 50 or :math:`\frac{60000}{1001}` interlaced fields per second:
+fps content, but home entertainment systems don't have a standard way to take
+in progressive 48 fps, 50 fps, or 60 fps material from the studio. If you wish
+to convey smooth motion of events that were captured or rendered in high speed,
+you can still do one of these at 50 or :math:`\frac{60000}{1001}` interlaced
+fields per second:
 
 * Put it on a DVD as 480i or 576i
 * Put it on a Blu-ray as 480i, 576i, or 1080i
@@ -133,14 +134,13 @@ Blend of Motion
 If it was the content producer's intended playback
     Rarely does a filmmaker think to themselves that interlacing is great and
     they want to work with it more; it's usually the opposite. However,
-    sometimes interlaced scan actually is the intended target. The film 28 Days
-    Later was intentionally shot in :math:`\frac{60000}{1001}` interlaced
-    fields-per-second to give it a low-fi-but-close-to-reality look.
+    should that moment arise, perhaps wanting to give a found-footage horror
+    film the lo-fi reality feel that fits, you're covered.
 
 
 Chances are, whatever modern equipment you'd normally play back interlaced
-material on will deinterlace it and play a progressive representation. You
-could find the amount of moments presented are cut in half.
+material on will deinterlace that content and play a progressive
+representation. You could find the amount of moments presented are cut in half.
 
 True interlaced scan could be done with an old CRT TV and means to transport
 interlaced content to the TV or you could process interlaced content with
