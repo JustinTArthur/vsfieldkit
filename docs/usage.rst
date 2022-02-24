@@ -25,7 +25,8 @@ To add to a specific scripts directory:
 The package uses semantic versioning to indicate backwards
 compatible changes to the API.
 
-As the developer does not have Windows, vsrepo is not supported.
+As the developer does not have Windows, vsrepo is not officially supported.
+That said, it seems to be able to install vsfieldkit.
 
 Dependencies
 ^^^^^^^^^^^^
