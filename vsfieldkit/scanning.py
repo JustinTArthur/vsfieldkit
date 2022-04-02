@@ -165,6 +165,55 @@ def _repeat_new_field_chroma(clip: VideoNode, offset=0):
     return edited_ordered
 
 
+def _decay_old_field(clip: VideoNode, offset=0, decay_factor=0.5):
+    """Returns a new clip of scanned field frames where the previously scanned
+    field is dimmed."""
+    if offset:
+        pre_offset = clip[:offset]
+        edit_range = clip[offset:]
+    else:
+        pre_offset = None
+        edit_range = clip
+
+    # Given a scan from TFF:
+    # NewTop  WarmupBtm OldTop  NewBtm  NewTop  OldBtm  OldTop NewBtm  NewTop…
+    # or BFF:
+    # NewBtm  WarmupTop OldBtm  NewTop  NewBtm  OldTop  OldBtm NewTop  NewBtm…
+    # Decay cadence:
+    # -       ^         ^       -       -       ^       ^      -       -
+    fresh_fields = edit_range.std.SelectEvery(
+        cycle=4,
+        offsets=(0, 3),
+        modify_duration=False
+    )
+    old_fields = edit_range.std.SelectEvery(
+        cycle=4,
+        offsets=(1, 2),
+        modify_duration=False
+    )
+    if clip.format.sample_type
+    clip.format
+    # TODO: determine the min and max based on family, range, and
+    decayed_fields = old_fields.std.Levels(
+        min_in=None, max_in=None,
+        max_in=None, max_out=None,
+        planes=(0,)
+    )
+    edited_interleaved = core.std.Interleave(
+        (fresh_fields, decayed_fields),
+        modify_duration=False
+    )
+    edited_ordered = edited_interleaved.std.SelectEvery(
+        cycle=4,
+        offsets=(0, 1, 3, 2),
+        modify_duration=False
+    )
+
+    if offset:
+        return pre_offset + edited_ordered
+    return edited_ordered
+
+
 def _blend_vertically(clip: VideoNode, kernel: Callable) -> VideoNode:
     """Instead of typical Bob deinterlacing that takes advantage of temporal
     changes in a field, this deinterlacer simply plays back the interlaced
