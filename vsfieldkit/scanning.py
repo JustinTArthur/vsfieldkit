@@ -1,7 +1,9 @@
 from collections.abc import Mapping, Sequence
-from typing import Callable, Optional
+from decimal import Decimal
+from fractions import Fraction
+from typing import Callable, Optional, Union
 
-from vapoursynth import ColorFamily, VideoNode, core
+from vapoursynth import ColorFamily, VideoNode, core, GRAY8
 
 from vsfieldkit.types import (ChromaSubsampleScanning,
                               InterlacedScanPostProcessor)
@@ -18,6 +20,8 @@ def scan_interlaced(
         ChromaSubsampleScanning.SCAN_LATEST
     ),
     dither_type: str = 'random',
+    decay_base: Optional[VideoNode] = None,
+    decay_factor: Union[float, int, Fraction, Decimal, None]=None,
     post_processing: Sequence[InterlacedScanPostProcessor] = (),
     post_processing_blend_kernel: Callable = core.resize.Spline36,
 ) -> VideoNode:
@@ -87,6 +91,13 @@ def scan_interlaced(
         and chroma_subsample_scanning == ChromaSubsampleScanning.SCAN_LATEST
     ):
         phosphor_fields = _repeat_new_field_chroma(phosphor_fields)
+    if decay_factor:
+        phosphor_fields = _decay_old_field(
+            phosphor_fields,
+            planes=(0,) if chroma_upsampled else tuple(range(clip.format.num_planes)),
+            decay_factor=decay_factor,
+            decay_base=decay_base
+        )
 
     laced = core.std.DoubleWeave(phosphor_fields, tff=True)[::2]
     as_progressive = assume_progressive(laced)
@@ -165,7 +176,13 @@ def _repeat_new_field_chroma(clip: VideoNode, offset=0):
     return edited_ordered
 
 
-def _decay_old_field(clip: VideoNode, offset=0, decay_factor=0.5):
+def _decay_old_field(
+    clip: VideoNode,
+    planes: Sequence[int],
+    offset=0,
+    decay_factor=0.5,
+    decay_base: Optional[VideoNode] = None,
+) -> VideoNode:
     """Returns a new clip of scanned field frames where the previously scanned
     field is dimmed."""
     if offset:
@@ -174,6 +191,18 @@ def _decay_old_field(clip: VideoNode, offset=0, decay_factor=0.5):
     else:
         pre_offset = None
         edit_range = clip
+
+    if not decay_base:
+        black_planes = []
+        is_integer = (clip.format.sample_type == 0)
+        # Use a black clip of the same format as the field frames to decay.
+        if is_integer and clip.format.color_range == 1:
+            black_planes.append(16)
+        else:
+            black_planes.append(0)
+        if is_integer and clip.format.color_family == 'YUV':
+            black_planes.append(1 << (clip.format.bits_per_sample - 1))
+        decay_base = clip.std.BlankClip(color=black_planes)
 
     # Given a scan from TFF:
     # NewTop  WarmupBtm OldTop  NewBtm  NewTop  OldBtm  OldTop NewBtm  NewTop…
@@ -191,13 +220,13 @@ def _decay_old_field(clip: VideoNode, offset=0, decay_factor=0.5):
         offsets=(1, 2),
         modify_duration=False
     )
-    if clip.format.sample_type
-    clip.format
-    # TODO: determine the min and max based on family, range, and
-    decayed_fields = old_fields.std.Levels(
-        min_in=None, max_in=None,
-        max_in=None, max_out=None,
-        planes=(0,)
+    mask = core.std.BlankClip(legnth=len(old_fields), format=GRAY8, color=round(decay_factor*255))
+    # Chroma planes only decayed if no vertical subsampling, otherwise
+    # our decay bleeds into the newly painted scanlines.
+    decayed_fields = old_fields.std.MaskedMerge(
+        clipb=decay_base,
+        mask=mask,
+        planes=(0, 1, 2) if clip.format.subsampling_h == 0 else (0,)
     )
     edited_interleaved = core.std.Interleave(
         (fresh_fields, decayed_fields),

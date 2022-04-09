@@ -142,6 +142,8 @@ Functions
         chroma_subsample_scanning: ChromaSubsampleScanning = ( \
             ChromaSubsampleScanning.SCAN_LATEST \
         ), \
+        decay_base: Optional[VideoNode] = None, \
+        decay_factor: Union[float, int, Fraction, Decimal, None]=None, \
         dither_type: str = 'random', \
         post_processing: Sequence[InterlacedScanPostProcessor] = (), \
         post_processing_blend_kernel: Callable = core.resize.Spline36, \
@@ -199,11 +201,27 @@ Functions
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.ChromaSubsampleScanning` enum.
 
+    :param VideoNode decay_base:
+        A background clip that previously-laced scan lines should be dimmed to
+        instead of black. Ignored if ``decay_factor`` is not set. Should be the
+        size of a single field (half the height of the interlaced clip being
+        scanned).
+
+    :param numbers.Number decay_factor:
+        Amount by which to dim the previously-laced scan lines, exposing the
+        decay_base clip. Usually expressed as a float, Decimal or Fraction
+        where ``1`` means the previously-laced scan lines are completely
+        replaced by the decay_base clip, ``0.5`` means the clip is dimmed half
+        and ``0`` means there is no dimming at all. This simulates the decay of
+        cathode ray tube phosphors in the moments after they've been scanned
+        onto. ``decay_base`` can be used to dim to a background other than
+        solid black.
+
     :param str dither_type:
         If video is processed at a higher bit depth internally before being
         returned to an original depth of less than 16 bits per plane, this
         dithering method will be used to avoid banding and other unnatural
-        artifacts caused by rounding.
+        artifacts caused by rounding colors to the nearest integer.
 
     :param Sequence[InterlacedScanPostProcessor] post_processing:
         Post-processing steps to run on the frames resulting from interlaced
