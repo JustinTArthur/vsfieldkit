@@ -166,9 +166,6 @@ Functions
     are marked as progressive by the function. It might be better to call this
     function a "display interlacer" rather than a deinterlacer.
 
-    In the function's current version, there are no simulations of physical
-    CRT/phosphor effects like dimming/decay, aperture grille, or shadow mask.
-
     This was inspired by Juha Jeronen's wonderful Phosphor deinterlacer for
     VideoLAN's VLC. This code was not derived from it, but I've tried to at
     least keep the subsampling nomenclature the same.
