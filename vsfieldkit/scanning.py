@@ -1,13 +1,12 @@
 from collections.abc import Mapping, Sequence
-from decimal import Decimal
-from fractions import Fraction
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
-from vapoursynth import ColorFamily, VideoNode, core, GRAY8
+from vapoursynth import GRAY8, ColorFamily, VideoNode, core
 
-from vsfieldkit.types import (ChromaSubsampleScanning,
+from vsfieldkit.types import (ChromaSubsampleScanning, Factor,
                               InterlacedScanPostProcessor)
-from vsfieldkit.util import assume_progressive, convert_format_if_needed
+from vsfieldkit.util import (assume_progressive, black_clip_from_clip,
+                             convert_format_if_needed)
 
 post_processing_routines: Mapping[InterlacedScanPostProcessor, Callable]
 
@@ -21,7 +20,7 @@ def scan_interlaced(
     ),
     dither_type: str = 'random',
     decay_base: Optional[VideoNode] = None,
-    decay_factor: Union[float, int, Fraction, Decimal, None]=None,
+    decay_factor: Optional[Factor] = None,
     post_processing: Sequence[InterlacedScanPostProcessor] = (),
     post_processing_blend_kernel: Callable = core.resize.Spline36,
 ) -> VideoNode:
@@ -43,7 +42,7 @@ def scan_interlaced(
     # Desired Result:   wa+1b 1a+1b 2a+1b 2a+2b 3a+2b
 
     if not warmup_clip:
-        warmup_clip = clip.std.BlankClip(length=1)
+        warmup_clip = black_clip_from_clip(clip, length=1)
         warmup_clip = warmup_clip.std.CopyFrameProps(clip[0])
     else:
         warmup_clip = warmup_clip[-1]
@@ -56,35 +55,10 @@ def scan_interlaced(
     scannable_warmup = convert_format_if_needed(warmup_clip, subsampling_h=0)
     chroma_upsampled = (scannable_clip.format.id != clip.format.id)
 
-    original_fields = scannable_clip.std.SeparateFields(tff=tff)
-    warmup_fields = scannable_warmup.std.SeparateFields(tff=tff)
-
-    # Pick out the field position not about to be initialized by main clip
-    first_field = original_fields.get_frame(0).props._Field
-    for field_frame_clip in warmup_fields:
-        field_frame = field_frame_clip.get_frame(0)
-        if field_frame.props._Field != first_field:
-            warmup_field = field_frame_clip
-            break
-    else:
-        raise ValueError("Couldn't determine warmup field from supplied clip.")
-
-    # To achieve the updating and repeating of fields, we can rely on the same
-    # functions used to interlace. We just need to ensure every field is
-    # interlaced twice except for the last one.
-    recycled_fields = original_fields.std.SelectEvery(
-        cycle=2,
-        offsets=(0, 1, 0, 1),
-        modify_duration=True
-    )[:-1]
-    synced_warmup_field = warmup_field.std.AssumeFPS(src=recycled_fields)
-
-    # Insert our warm-up field in a way that scans the interlaced material
-    # in the same field order it came in. Probably not required.
-    phosphor_fields = (
-        recycled_fields[0]
-        + synced_warmup_field
-        + recycled_fields[1:]
+    phosphor_fields = _scan_clip_to_phosphor_fields(
+        scannable_clip,
+        scannable_warmup,
+        tff=tff
     )
     if (
         chroma_upsampled
@@ -92,11 +66,25 @@ def scan_interlaced(
     ):
         phosphor_fields = _repeat_new_field_chroma(phosphor_fields)
     if decay_factor:
+        if not decay_base:
+            decay_base = black_clip_from_clip(clip, length=1)
+        scannable_decay_base = convert_format_if_needed(
+            decay_base,
+            format=scannable_clip.format
+        )
+        # Repeat decay base for every frame of orignal clip:
+        decay_clip = scannable_decay_base[0] * len(scannable_clip)
+        # Ensure exact same field order instructions as original:
+        decay_clip = decay_clip.std.CopyFrameProps(scannable_clip)
+        decayed_phosphor_fields = _scan_clip_to_phosphor_fields(
+            decay_clip,
+            decay_clip[0],
+            tff=tff
+        )
         phosphor_fields = _decay_old_field(
             phosphor_fields,
-            planes=(0,) if chroma_upsampled else tuple(range(clip.format.num_planes)),
             decay_factor=decay_factor,
-            decay_base=decay_base
+            decay_fields=decayed_phosphor_fields
         )
 
     laced = core.std.DoubleWeave(phosphor_fields, tff=True)[::2]
@@ -126,16 +114,50 @@ def scan_interlaced(
         )
 
 
-def _repeat_new_field_chroma(clip: VideoNode, offset=0):
+def _scan_clip_to_phosphor_fields(clip, warmup_clip, tff):
+    original_fields = clip.std.SeparateFields(tff=tff)
+    warmup_fields = warmup_clip.std.SeparateFields(tff=tff)
+
+    # Pick out the field position not about to be initialized by main clip
+    first_field = original_fields.get_frame(0).props._Field
+    for field_frame_clip in warmup_fields:
+        field_frame = field_frame_clip.get_frame(0)
+        if field_frame.props._Field != first_field:
+            warmup_field = field_frame_clip
+            break
+    else:
+        raise ValueError("Couldn't determine warmup field from supplied clip.")
+
+    # To achieve the updating and repeating of fields, we can rely on the same
+    # functions used to interlace. We just need to ensure every field is
+    # interlaced twice except for the last one.
+    recycled_fields = original_fields.std.SelectEvery(
+        cycle=2,
+        offsets=(0, 1, 0, 1),
+        modify_duration=True
+    )[:-1]
+    synced_warmup_field = warmup_field.std.AssumeFPS(src=recycled_fields)
+
+    # Insert our warm-up field in a way that scans the interlaced material
+    # in the same field order it came in. Probably not required.
+    phosphor_fields = (
+        recycled_fields[0]
+        + synced_warmup_field
+        + recycled_fields[1:]
+    )
+    return phosphor_fields
+
+
+def _repeat_new_field_chroma(phosphor_fields: VideoNode, offset=0):
     """Returns a new clip of scanned field frames where the chroma plane from
     the first field of a final frame is copied over the next frame's chroma,
     then the 3rd frame's chroma is copied over the 4th, etc."""
     if offset:
-        pre_offset = clip[:offset]
-        edit_range = clip[offset:]
+        pre_offset = phosphor_fields[:offset]
+        edit_range = phosphor_fields[offset:]
     else:
         pre_offset = None
-        edit_range = clip
+        edit_range = phosphor_fields
 
     # Given a scan from TFF:
     # NewTop  WarmupBtm OldTop  NewBtm  NewTop  OldBtm  OldTop NewBtm  NewTop…
@@ -177,32 +199,21 @@ def _repeat_new_field_chroma(clip: VideoNode, offset=0):
 
 
 def _decay_old_field(
-    clip: VideoNode,
-    planes: Sequence[int],
-    offset=0,
-    decay_factor=0.5,
-    decay_base: Optional[VideoNode] = None,
+    phosphor_fields: VideoNode,
+    decay_factor: Factor,
+    decay_fields: VideoNode,
+    offset=0
 ) -> VideoNode:
     """Returns a new clip of scanned field frames where the previously scanned
     field is dimmed."""
     if offset:
-        pre_offset = clip[:offset]
-        edit_range = clip[offset:]
+        pre_offset = phosphor_fields[:offset]
+        edit_range = phosphor_fields[offset:]
+        decay_range = decay_fields[offset:]
     else:
         pre_offset = None
-        edit_range = clip
-
-    if not decay_base:
-        black_planes = []
-        is_integer = (clip.format.sample_type == 0)
-        # Use a black clip of the same format as the field frames to decay.
-        if is_integer and clip.format.color_range == 1:
-            black_planes.append(16)
-        else:
-            black_planes.append(0)
-        if is_integer and clip.format.color_family == 'YUV':
-            black_planes.append(1 << (clip.format.bits_per_sample - 1))
-        decay_base = clip.std.BlankClip(color=black_planes)
+        edit_range = phosphor_fields
+        decay_range = decay_fields
 
     # Given a scan from TFF:
     # NewTop  WarmupBtm OldTop  NewBtm  NewTop  OldBtm  OldTop NewBtm  NewTop…
@@ -220,13 +231,28 @@ def _decay_old_field(
         offsets=(1, 2),
         modify_duration=False
     )
-    mask = core.std.BlankClip(legnth=len(old_fields), format=GRAY8, color=round(decay_factor*255))
+    decayed_old_fields = decay_range.std.SelectEvery(
+        cycle=4,
+        offsets=(1, 2),
+        modify_duration=False
+    )
+    mask = old_fields.std.BlankClip(
+        length=len(old_fields),
+        format=GRAY8,
+        color=round(decay_factor * 255)
+    )
+
     # Chroma planes only decayed if no vertical subsampling, otherwise
     # our decay bleeds into the newly painted scanlines.
+    if phosphor_fields.format.subsampling_h == 0:
+        decay_planes = tuple(range(phosphor_fields.format.num_planes))
+    else:
+        decay_planes = (0,)
+
     decayed_fields = old_fields.std.MaskedMerge(
-        clipb=decay_base,
+        clipb=decayed_old_fields,
         mask=mask,
-        planes=(0, 1, 2) if clip.format.subsampling_h == 0 else (0,)
+        planes=decay_planes
     )
     edited_interleaved = core.std.Interleave(
         (fresh_fields, decayed_fields),
