@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Callable, Optional
 
-from vapoursynth import GRAY8, ColorFamily, VideoNode, core
+from vapoursynth import ColorFamily, SampleType, VideoNode, core
 
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor,
                               InterlacedScanPostProcessor)
@@ -81,10 +81,15 @@ def scan_interlaced(
             decay_clip[0],
             tff=tff
         )
+        decay_chroma_planes = (
+            chroma_subsample_scanning == ChromaSubsampleScanning.SCAN_UPSAMPLED
+            or not chroma_upsampled
+        )
         phosphor_fields = _decay_old_field(
             phosphor_fields,
             decay_factor=decay_factor,
-            decay_fields=decayed_phosphor_fields
+            decay_fields=decayed_phosphor_fields,
+            include_chroma=decay_chroma_planes
         )
 
     laced = core.std.DoubleWeave(phosphor_fields, tff=True)[::2]
@@ -202,6 +207,7 @@ def _decay_old_field(
     phosphor_fields: VideoNode,
     decay_factor: Factor,
     decay_fields: VideoNode,
+    include_chroma: bool,
     offset=0
 ) -> VideoNode:
     """Returns a new clip of scanned field frames where the previously scanned
@@ -236,15 +242,25 @@ def _decay_old_field(
         offsets=(1, 2),
         modify_duration=False
     )
+
+    mask_format = core.query_video_format(
+        color_family=ColorFamily.GRAY,
+        sample_type=phosphor_fields.format.sample_type,
+        bits_per_sample=phosphor_fields.format.bits_per_sample
+    )
+    if mask_format.sample_type == SampleType.FLOAT:
+        mask_max = 1.0
+    else:
+        mask_max = (2 ** mask_format.bits_per_sample) - 1
     mask = old_fields.std.BlankClip(
         length=len(old_fields),
-        format=GRAY8,
-        color=round(decay_factor * 255)
+        format=mask_format,
+        color=round(decay_factor * mask_max)
     )
 
     # Chroma planes only decayed if no vertical subsampling, otherwise
     # our decay bleeds into the newly painted scanlines.
-    if phosphor_fields.format.subsampling_h == 0:
+    if include_chroma:
         decay_planes = tuple(range(phosphor_fields.format.num_planes))
     else:
         decay_planes = (0,)
