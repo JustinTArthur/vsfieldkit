@@ -2,7 +2,13 @@ Changelog
 =========
 0.3.0
 -----
-Adds phosphor decay simulation for :py:func:`vsfieldkit.scan_interlaced`
+* New functions for re-interpreting progressive frames with interlaced sub-sampled chroma:
+
+  * :py:func:`vsfieldkit.resample_as_progressive`
+  * :py:func:`vsfieldkit.upsample_as_progressive`
+
+* Adds phosphor decay simulation for :py:func:`vsfieldkit.scan_interlaced`
+
 
 0.2.0
 -----

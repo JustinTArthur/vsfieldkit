@@ -10,6 +10,8 @@ Included functions:
 `vsfieldkit.double(clip)`  
 `vsfieldkit.group_by_combed(clip)`  
 `vsfieldkit.group_by_field_order(clip)`  
-`vsfieldkit.scan_interlaced(clip)`
+`vsfieldkit.resample_as_progressive(clip)`  
+`vsfieldkit.scan_interlaced(clip)`  
+`vsfieldkit.upsample_as_progressive(clip)`
 
 See [the documentation](https://vsfieldkit.justinarthur.com/) for more information.

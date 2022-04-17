@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from vapoursynth import VideoNode, core
+from vapoursynth import FieldBased, VideoNode, core
 
 from vsfieldkit.util import convert_format_if_needed
 
@@ -29,3 +29,37 @@ def bob(
         return stretched
 
     return stretched.std.RemoveFrameProps(('_Field',))
+
+
+def resample_as_progressive(
+    clip: VideoNode,
+    kernel: Callable = core.resize.Spline36,
+    dither_type: str = 'random'
+) -> VideoNode:
+    """When every frame of the clip represents progressive content (no
+    combing) this will take any frames encoded interlaced and resample them so
+    that they are progressive in both content AND format.
+    """
+    upsampled = upsample_as_progressive(clip)
+    resampled = convert_format_if_needed(
+        upsampled,
+        format=clip.format,
+        kernel=kernel,
+        dither_type=dither_type
+    )
+    return resampled
+
+
+def upsample_as_progressive(clip: VideoNode):
+    """Returns a clip now marked as progressive and with any vertical
+    chroma subsampling removed so that previously-alternating chroma lines
+    will be laid out in the correct one-line-after-another order for
+    progressive content."""
+    upsampled = convert_format_if_needed(
+        clip,
+        subsampling_h=0,
+        kernel=core.resize.Point,
+        dither_type='none'
+    )
+    as_progressive = upsampled.std.SetFieldBased(FieldBased.FIELD_PROGRESSIVE)
+    return as_progressive

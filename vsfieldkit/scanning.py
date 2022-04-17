@@ -250,6 +250,7 @@ def _decay_old_field(
     )
     if mask_format.sample_type == SampleType.FLOAT:
         mask_max = 1.0
+        decay_factor = float(decay_factor)
     else:
         mask_max = (2 ** mask_format.bits_per_sample) - 1
     mask = old_fields.std.BlankClip(

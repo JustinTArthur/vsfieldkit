@@ -34,12 +34,20 @@ Just VapourSynth.
 
 Functions
 ---------
+Reinterpreting
+^^^^^^^^^^^^^^
 .. autofunction:: vsfieldkit.assume_bff(clip: VideoNode) -> VideoNode
 
 .. autofunction:: vsfieldkit.assume_progressive(clip: VideoNode) -> VideoNode
 
+    For progressive content that has been encoded as interlaced with vertical
+    chroma subsampling, use :py:func:`vsfieldkit.resample_as_progressive` or
+    :py:func:`vsfieldkit.upsample_as_progressive` instead.
+
 .. autofunction:: vsfieldkit.assume_tff(clip: VideoNode) -> VideoNode
 
+Deinterlacing
+^^^^^^^^^^^^^
 .. function:: vsfieldkit.bob( \
         clip: VideoNode, \
         tff: Optional[bool] = None, \
@@ -76,64 +84,38 @@ Functions
         dithering method will be used to avoid banding and other unnatural
         artifacts caused by rounding at low bit rate.
 
+.. function:: vsfieldkit.resample_as_progressive(clip: VideoNode, kernel: Callable = core.resize.Spline36, dither_type: str = 'random') -> VideoNode
 
-.. autofunction:: vsfieldkit.double(clip: VideoNode) -> VideoNode
+    This should be used instead of :py:func:`vsfieldkit.assume_progressive`
+    when progressive content has been encoded interlaced with vertical chroma
+    subsampling. This encoding method is popular on lazily produced PAL
+    territory DVDs for original 24p or 25p film content.
 
-.. function:: vsfieldkit.group_by_combed( \
-        clip: VideoNode \
-    ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
+    When progressive content is encoded as interlaced pictures with 4:2:0
+    chroma subsampling, the chroma samples span alternating instead of adjacent
+    lines. Simply marking/assuming such clips as progressive could result in
+    color samples being attributed to the wrong lines (bleeding), and in those
+    cases this function can be used instead. It will prevent bleeding, though
+    as this comes up with new samples for the progressive content, it can
+    result in some loss of original color precision.
 
-    Assuming the passed-in clip was processed by a filter that performs
-    comb detection, this splits the clip into segments based on whether they
-    are combed or not. The values it generates are True, False, or ``None`` if
-    it was marked combed, not combed, or not marked as well as the segment of
-    the clip.
+    If you wish to perform additional processing before the final chroma
+    subsampling is restored, use :py:func:`vsfieldkit.upsample_as_progressive`
+    instead.
 
-    This does not have any built-in comb detection.
+    :param VideoNode clip: Video with progressive frames encoded as interlaced
+        with vertical subsampling.
 
-    .. code-block:: python
-        :caption: Example
+    :param typing.Callable kernel:
+        Resizing/resampling function from vapoursynth.core.resize to use to
+        stretch the fields to the target frame height. Defaults to
+        :py:func:`resize.Spline36`.
 
-        progressive_clips = []
-        detelecined = tivtc.TFM(clip, PP=1)
-        for combed, segment in vsfieldkit.group_by_combed(detelecined):
-            if combed:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=False)
-                )
-            else:
-                progressive_clips.append(
-                    tivtc.TDecimate(segment, tff=False)
-                )
-        vs.core.std.Splice(progressive_clips).set_output()
-
-.. function:: vsfieldkit.group_by_field_order( \
-        clip: VideoNode \
-    ) -> Iterator[Tuple[Union[FieldBased, None], VideoNode]]
-
-    Generates field orders and clips from the passed in clip split up by
-    changes in field order. Field order is expressed as a
-    :py:class:`FieldBased` enumeration or ``None`` if field order is not
-    applicable or not available.
-
-    .. code-block:: python
-        :caption: Example
-
-        progressive_clips = []
-        for order, segment in vsfieldkit.group_by_field_order(clip):
-            if order == vs.FIELD_TOP:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=True)
-                )
-            elif order == vs.FIELD_BOTTOM:
-                progressive_clips.append(
-                    havsfunc.QTGMC(segment, TFF=False)
-                )
-            elif order == vs.PROGRESSIVE:
-                progressive_clips.append(
-                    vsfieldkit.double(segment)
-                )
-        vs.core.std.Splice(progressive_clips).set_output()
+    :param str dither_type:
+        If video is processed at a higher bit depth internally before being
+        returned to an original depth of less than 16 bits per plane, this
+        dithering method will be used to avoid banding and other unnatural
+        artifacts caused by rounding at low bit rate.
 
 .. function:: vsfieldkit.scan_interlaced( \
         clip: VideoNode, \
@@ -233,6 +215,94 @@ Functions
 
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.InterlacedScanPostProcessor` enum.
+
+.. function:: vsfieldkit.upsample_as_progressive(clip: VideoNode) -> VideoNode
+
+    Returns a clip now marked as progressive and with any vertical chroma
+    subsampling removed so that previously-alternating chroma lines will be
+    laid out in the correct one-line-after-another order for progressive
+    content.
+
+    This should be used instead of :py:func:`vsfieldkit.assume_progressive`
+    when the progressive frames have been encoded interlaced and additional
+    processing is desired before restoring the target chroma sub-sampling.
+
+    .. code-block:: python
+        :caption: Example
+
+        # Interpret as progressive, removing vertical chroma subsampling
+        upsampled = vsfieldkit.upsample_as_progressive(clip)
+
+        # Additional processing:
+        fixed_edges = awsmfunc.bbmod(upsampled, left=2, right=3)
+
+        # Restore original subsampling with favorite kernel then output:
+        resampled = fixed_edges.resize.Spline36(format=clip.format)
+        resampled.set_output()
+
+Utility
+^^^^^^^
+
+.. autofunction:: vsfieldkit.double(clip: VideoNode) -> VideoNode
+
+.. function:: vsfieldkit.group_by_combed( \
+        clip: VideoNode \
+    ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
+
+    Assuming the passed-in clip was processed by a filter that performs
+    comb detection, this splits the clip into segments based on whether they
+    are combed or not. The values it generates are True, False, or ``None`` if
+    it was marked combed, not combed, or not marked as well as the segment of
+    the clip.
+
+    This does not have any built-in comb detection.
+
+    .. code-block:: python
+        :caption: Example
+
+        progressive_clips = []
+        detelecined = tivtc.TFM(clip, PP=1)
+        for combed, segment in vsfieldkit.group_by_combed(detelecined):
+            if combed:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=False)
+                )
+            else:
+                progressive_clips.append(
+                    tivtc.TDecimate(segment, tff=False)
+                )
+        vs.core.std.Splice(progressive_clips).set_output()
+
+.. function:: vsfieldkit.group_by_field_order( \
+        clip: VideoNode \
+    ) -> Iterator[Tuple[Union[FieldBased, None], VideoNode]]
+
+    Generates field orders and clips from the passed in clip split up by
+    changes in field order. Field order is expressed as a
+    :py:class:`FieldBased` enumeration or ``None`` if field order is not
+    applicable or not available.
+
+    .. code-block:: python
+        :caption: Example
+
+        progressive_clips = []
+        for order, segment in vsfieldkit.group_by_field_order(clip):
+            if order == vs.FIELD_TOP:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=True)
+                )
+            elif order == vs.FIELD_BOTTOM:
+                progressive_clips.append(
+                    havsfunc.QTGMC(segment, TFF=False)
+                )
+            elif order == vs.PROGRESSIVE:
+                progressive_clips.append(
+                    vsfieldkit.double(segment)
+                )
+        vs.core.std.Splice(progressive_clips).set_output()
+
+Types
+^^^^^
 
 .. autoclass:: vsfieldkit.ChromaSubsampleScanning
     :members:
