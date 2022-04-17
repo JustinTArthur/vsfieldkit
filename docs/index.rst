@@ -2,6 +2,11 @@ vsfieldkit
 ==========
 A collection of functions for working with interlaced content in VapourSynth.
 
+The code is managed on the
+`JustinTArthur/vsfieldkit project on GitHub <https://github.com/JustinTArthur/vsfieldkit>`_
+
+Documentation
+-------------
 .. toctree::
     :maxdepth: 2
     :caption: Contents:

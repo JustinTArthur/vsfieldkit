@@ -2,36 +2,23 @@ scan_interlaced Deep Dive
 =========================
 :py:func:`~vsfieldkit.scan_interlaced` can be thought of as a converter between
 storage/transport interlacing and display interlacing (a process sometimes
-called scanning). The process is detailed below.
+called interlaced scan). The process is detailed below.
 
 Interlacing for Storage/Transport
 ---------------------------------
 When captured moments from a camera are stored, two moments' footage are laced
 into eachother in a single frame or picture, so in European video systems, this
 usually means 50 moments captured in a second are interlaced onto 25
-frames\ [#other_territories]_\. These 25
-frames could then be transported over HDTV broadcast or on a DVD and it's up to
-the playback system how to present those 50 moments.
+frames\ [#other_territories]_\. These 25 frames could then be transported over
+HDTV broadcast or on a DVD and it's up to the playback system how to present
+those 50 moments.
 
 
-Interlacing for Display
------------------------
+Playing Back Interlaced Content
+-------------------------------
 Playback systems like your DVD player and television have a few choices when
 they play back content that is stored or transported interlaced. Usually
 the choices are:
-
-Inverse Telecine or Field-matching
-    Identify content originally captured as progressive frames at a slower pace
-    than the rate of field moments, stretched out over interlaced fields to fit
-    an interlaced medium. For example, playing back a DVD of a movie filmed at
-    24 film-frames-per-second.
-
-Deinterlacing
-    Extract an interlaced field and construct a new frame for that moment
-    using that field and optionally information from the fields stored for
-    previous and next moments. These new frames can be displayed at the
-    original field rate or the moments could be halved and the new frames would
-    be displayed at the stored frame rate (half the field rate).
 
 Interlacing-naive Progressive Scan
     Take the interlaced frame and send it to a progressive scan display as-is.
@@ -45,10 +32,23 @@ Interlacing-naive Progressive Scan
     appear uncombed to the viewer if the top and bottom fields of the same
     moment in time are stored in the same frame, occasionally repeated.
 
+Inverse Telecine or Field-matching
+    Identify content originally captured as progressive frames at a slower pace
+    than the rate of field moments, stretched out over interlaced fields to fit
+    an interlaced medium. For example, playing back a DVD of a movie filmed at
+    24 film-frames-per-second.
+
+Deinterlacing
+    Extract an interlaced field and construct a new frame for that moment
+    using that field and optionally information from the fields stored for
+    previous and next moments. These new frames can be displayed at the
+    original field rate or the moments could be halved and the new frames would
+    be displayed at the stored frame rate.
+
 Interlaced Scan
     Extract an interlaced field and paint it onto the display with the same
-    alternating lines it was stored with in that same position then extract
-    the next interlaced field from the stored frame and paint it onto its
+    alternating lines it was stored with in that same position then extract the
+    next interlaced field from the stored frame and paint it onto its
     corresponding lines at the relative moment in time it was captured at. The
     previously-painted lines might have begun to fade away during this new
     moment depending on the display technology.
@@ -57,6 +57,21 @@ If a video playback system is incapable of interlaced scan, it could instead be
 fed progressive frames that represent the states of an interlaced scan display.
 It is these kinds of frames that :py:func:`vsfieldkit.scan_interlaced` helps
 produce.
+
+.. only:: html
+
+    .. figure:: https://jta-code.s3.amazonaws.com/vsfieldkit/examples/storage_vs_display-10hz-25.webm
+        :class: controls
+
+        Interlaced Scan in Action
+
+        Comparing the original stored clip to the output of
+        :py:func:`vsfieldkit.scan_interlaced`. Slowed to 10fps to emphasize
+        differences in motion smoothness.
+
+        Code Rush (2000) by David Winton used under the `Creative Commons
+        Attribution-NonCommercial-ShareAlike 3.0 Unported License
+        <http://creativecommons.org/licenses/by-nc-sa/3.0/>`_
 
 .. note::
     To display interlaced footage scanned to progressive frames with
@@ -147,6 +162,53 @@ interlaced content to the TV or you could process interlaced content with
 :py:func:`vsfieldkit.scan_interlaced` to prepare video that is displayed on
 a progressive scan system in the same way it would in an interlaced scan
 system.
+
+Features
+--------
+Phosphor Decay Simulation
+^^^^^^^^^^^^^^^^^^^^^^^^^
+In Cathode Ray Tube displays, an electron beam would scan alternating fields of
+lines from interlaced content onto cathodoluminescent substances (phosphors) to
+reproduce the content's light/color for display. After the phosphors were lit
+up they would begin to dim before being scanned onto by the electron beam
+again. The ``decay_factor`` and ``decay_base`` parameters of
+:py:func:`vsfieldkit.scan_interlaced` enable simulation of this behavior by
+dimming lines that were scanned onto in the previous moment.
+
+.. only:: html
+
+    .. figure:: https://jta-code.s3.amazonaws.com/vsfieldkit/examples/regular_vs_decay-30hz-25.webm
+        :class: controls
+
+        Phosphor Decay Simulation in Action
+
+        Slowed to 30fps for consistent demonstration on most displays.
+
+        Code Rush (2000) by David Winton used under the `Creative Commons
+        Attribution-NonCommercial-ShareAlike 3.0 Unported License
+        <http://creativecommons.org/licenses/by-nc-sa/3.0/>`_
+
+.. warning::
+    It's not recommended to add decay unless you know what the playback
+    device's refresh rate will be ahead of time. If the final video's framerate
+    is not a factor of the display refresh rate, it can result in a flickering
+    effect that will distract from the content.
+
+    The alternating lines of luma changes created by the decay simulation with
+    a strong decay factor can also be unpleasant or potentially
+    seizure-inducing at final frame rates between 5 and 30 progressive frames
+    per second.
+
+
+Origins
+-------
+:py:func:`~vsfieldkit.scan_interlaced` was inspired by
+    `Juha Jeronen <https://github.com/Technologicat>`_'s wonderful Phosphor
+    deinterlacer for VideoLAN's
+    `VLC media player <https://www.videolan.org/vlc/>`_. This code was not
+    derived from it, but it tries to at least keep the subsampling
+    nomenclature the same.
+
 
 .. rubric:: Footnotes
 
