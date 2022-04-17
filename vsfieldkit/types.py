@@ -1,4 +1,7 @@
+from decimal import Decimal
 from enum import Enum
+from fractions import Fraction
+from typing import Union
 
 
 class ChromaSubsampleScanning(Enum):
@@ -24,3 +27,6 @@ class InterlacedScanPostProcessor(Enum):
     BLEND_VERTICALLY = 'BLEND_VERTICALLY'
     """Blends the entire contents vertically to remove comb lines. You
     effectively lose close to half of the vertical detail as a side effect."""
+
+
+Factor = Union[int, float, Decimal, Fraction]

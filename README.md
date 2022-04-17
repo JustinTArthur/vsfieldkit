@@ -12,4 +12,4 @@ Included functions:
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.scan_interlaced(clip)`
 
-See [the documentation](https://vsfieldkit.readthedocs.io/) for more information.
+See [the documentation](https://vsfieldkit.justinarthur.com/) for more information.

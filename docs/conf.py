@@ -28,11 +28,15 @@ intersphinx_mapping = {
     'vapoursynth': ('http://www.vapoursynth.com/doc', None)
 }
 autodoc_mock_imports = ['vapoursynth']
-
+autodoc_typehints = 'both'
 
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = 'alabaster'
+html_theme_options = {
+    # 'page_width': 'auto',
+    # 'body_max_width': 1280
+}
 html_static_path = ['_static']
 mathjax3_config = {
     'options': {

@@ -1,6 +1,6 @@
-from typing import Iterator, Optional, Tuple, Union
+from typing import Callable, Iterator, Optional, Tuple, Union
 
-from vapoursynth import FieldBased, VideoFormat, VideoNode, core
+from vapoursynth import ColorFamily, FieldBased, VideoFormat, VideoNode, core
 
 FORMAT_INTRINSICS = (
     'color_family',
@@ -109,7 +109,7 @@ def group_by_field_order(
 
 def convert_format_if_needed(
     clip: VideoNode,
-    kernel=core.resize.Spline36,
+    kernel: Callable = core.resize.Spline36,
     format: Optional[VideoFormat] = None,
     dither_type='random',
     **format_or_resize_specs,
@@ -151,3 +151,32 @@ def convert_format_if_needed(
         resize_args['dither_type'] = dither_type
 
     return kernel(clip, **resize_args)
+
+
+def black_clip_from_clip(clip, **blank_clip_args):
+    """Creates a clip of black color in the same format as the passed in clip.
+    Unlike BlankClip, this takes the passed in clip's color range into account
+    by rendering the first frame.
+    """
+    bit_depth = clip.format.bits_per_sample
+    is_integer = (clip.format.sample_type == 0)
+    color_range = clip.get_frame(0).props.get('_ColorRange')
+
+    black_planes = []
+    # Luma Plane
+    if is_integer and color_range == 1:
+        floor_multiplier = (2 ** bit_depth) / 256
+        limited_black = 16 * floor_multiplier
+        black_planes.append(limited_black)
+    else:
+        black_planes.append(0)
+    # First Chroma Plane
+    if clip.format.color_family == ColorFamily.YUV:
+        black_planes.append((1 << (bit_depth - 1)) if is_integer else 0.5)
+    # Fill to rest of the planes
+    black_planes += (
+        [black_planes[-1]]
+        * (clip.format.num_planes - len(black_planes))
+    )
+
+    return clip.std.BlankClip(color=black_planes, **blank_clip_args)

@@ -142,6 +142,8 @@ Functions
         chroma_subsample_scanning: ChromaSubsampleScanning = ( \
             ChromaSubsampleScanning.SCAN_LATEST \
         ), \
+        decay_factor: Optional[Factor] = None, \
+        decay_base: Optional[VideoNode] = None, \
         dither_type: str = 'random', \
         post_processing: Sequence[InterlacedScanPostProcessor] = (), \
         post_processing_blend_kernel: Callable = core.resize.Spline36, \
@@ -164,12 +166,14 @@ Functions
     are marked as progressive by the function. It might be better to call this
     function a "display interlacer" rather than a deinterlacer.
 
-    In the function's current version, there are no simulations of physical
-    CRT/phosphor effects like dimming/decay, aperture grille, or shadow mask.
+    This was inspired by `Juha Jeronen <https://github.com/Technologicat>`_'s
+    wonderful Phosphor deinterlacer for VideoLAN's
+    `VLC media player <https://www.videolan.org/vlc/>`_. This code was not
+    derived from it, but it tries to at least keep the subsampling
+    nomenclature the same.
 
-    This was inspired by Juha Jeronen's wonderful Phosphor deinterlacer for
-    VideoLAN's VLC. This code was not derived from it, but I've tried to at
-    least keep the subsampling nomenclature the same.
+    More background and some examples can be found in the
+    :doc:`scan_interlaced_deep_dive`.
 
     :param VideoNode clip: Video with interlaced frames to scan to
         the resulting clip.
@@ -199,11 +203,27 @@ Functions
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.ChromaSubsampleScanning` enum.
 
+    :param Factor decay_factor:
+        Amount by which to dim the lines scanned in the previous moment,
+        exposing the ``decay_base`` clip. Usually expressed as a
+        :py:class:`float`, :py:class:`~decimal.Decimal` or
+        :py:class:`~fractions.Fraction` where ``1`` means the previously-laced
+        scan lines are completely replaced by lines from the decay_base clip,
+        ``0.5`` means the clip is dimmed half and ``0`` means there is no
+        dimming at all. This simulates the decay of cathode ray tube phosphors
+        in the moments after they've been scanned onto. ``decay_base`` can be
+        used to dim to a background other than solid black.
+
+    :param VideoNode decay_base:
+        A background clip that previously-scanned scan lines should be dimmed
+        to instead of black. Ignored if ``decay_factor`` is not set. Should be
+        one frame long. The frame will be re-used.
+
     :param str dither_type:
         If video is processed at a higher bit depth internally before being
         returned to an original depth of less than 16 bits per plane, this
         dithering method will be used to avoid banding and other unnatural
-        artifacts caused by rounding.
+        artifacts caused by rounding colors to the nearest integer.
 
     :param Sequence[InterlacedScanPostProcessor] post_processing:
         Post-processing steps to run on the frames resulting from interlaced
@@ -221,3 +241,5 @@ Functions
 .. autoclass:: vsfieldkit.InterlacedScanPostProcessor
     :members:
     :undoc-members:
+
+.. autodata:: vsfieldkit.Factor
