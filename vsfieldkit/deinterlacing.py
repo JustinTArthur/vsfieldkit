@@ -6,8 +6,13 @@ from vapoursynth import FieldBased, VideoNode, core
 from vsfieldkit.util import convert_format_if_needed
 
 
+VS_FIELD_FROM_TOP = 1
+VS_FIELD_FROM_BOTTOM = 0
+
+
 def bob(
     clip: VideoNode,
+    shift: bool = True,
     tff: Optional[bool] = None,
     keep_field_property: bool = True,
     kernel: Callable = core.resize.Spline36,
@@ -19,18 +24,55 @@ def bob(
     As interlaced fields have half the resolution of a given moment, the new
     frames are stretched up to the original clip's height.
     """
-    if hasattr(core.resize, 'Bob'):
-        warn(
-            'In VapourSynth >=R58, use the built-in core.resize.Bob instead.',
-            DeprecationWarning
+    if (
+        shift
+        and hasattr(core.resize, 'Bob')
+        and hasattr(kernel, 'plugin')
+        and kernel.plugin.namespace == 'resize'
+    ):
+        kernel_filter = kernel.name.lower()
+        warn(f'In VapourSynth >=R58, use the built-in '
+             f'core.resize.Bob(filter="{kernel_filter}" instead)).',
+             DeprecationWarning)
+        stretched = clip.resize.Bob(filter=kernel_filter)
+    else:
+        as_fields = clip.std.SeparateFields(tff=tff)
+        stretched = convert_format_if_needed(
+            as_fields,
+            height=clip.height,
+            kernel=kernel,
+            dither_type=dither_type
         )
-    as_fields = clip.std.SeparateFields(tff=tff)
-    stretched = convert_format_if_needed(
-        as_fields,
-        height=clip.height,
-        kernel=kernel,
-        dither_type=dither_type
-    )
+
+        if shift:
+            # core.resize doesn't expose zimg's destination field parity
+            # options so we have to assume it won't shift for us. We can trick
+            # it using its active region stuff instead. In zimg's sub-pixel
+            # layout, the fields are shifted by 1/4, adjusted for stretch as
+            # 1/8th.
+            stretched_as_top = convert_format_if_needed(
+                as_fields,
+                height=clip.height,
+                kernel=kernel,
+                dither_type=dither_type,
+                src_top=0.125
+            )
+            stretched_as_bottom = convert_format_if_needed(
+                as_fields,
+                height=clip.height,
+                kernel=kernel,
+                dither_type=dither_type,
+                src_top=-0.125
+            )
+            shift_map = {
+                VS_FIELD_FROM_TOP: stretched_as_top,
+                VS_FIELD_FROM_BOTTOM: stretched_as_bottom
+            }
+            stretched = stretched.std.FrameEval(
+                lambda n, f: shift_map[f.props._Field],
+                prop_src=(as_fields,)
+            )
+
     if keep_field_property:
         return stretched
 

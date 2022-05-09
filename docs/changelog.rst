@@ -2,8 +2,11 @@ Changelog
 =========
 Next Version
 ------------
-* :py:func:`vsfieldkit.bob` is deprecated in VapourSynth R58+ in favor of
-  core.std.Bob.
+Output Change:
+
+* :py:func:`vsfieldkit.bob` now defaults to shifting according to the field's
+  position. Feature added for completion, but it's also deprecated
+  in favor of :py:func:`resize.Bob` in VapourSynth R58+.
 
 0.3.0
 -----

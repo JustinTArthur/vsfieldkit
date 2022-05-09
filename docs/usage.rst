@@ -50,6 +50,7 @@ Deinterlacing
 ^^^^^^^^^^^^^
 .. function:: vsfieldkit.bob( \
         clip: VideoNode, \
+        shift: bool = True, \
         tff: Optional[bool] = None, \
         keep_field_property: bool = True, \
         kernel: Callable = core.resize.Spline36, \
@@ -61,11 +62,16 @@ Deinterlacing
     original capture. As interlaced fields have half the resolution of a given
     moment, the new frames are stretched up to the original clip's height.
 
-    VapourSynth R58 and above provides a built-in :py:func:`resize.Bob` that
-    should be used instead as it provides near-identical functionality.
+    If shifting for playback comfort, VapourSynth R58 and above provides a
+    built-in :py:func:`resize.Bob` that should be used instead as it provides
+    near-identical functionality.
 
     :param VideoNode clip: Video with interlaced frames to bob into
         the resulting clip.
+
+    :param bool shift: Whether to shift the lines during scaling to account for
+        the field's position in a full frame. Recommended if the output is
+        intended for playback.
 
     :param bool tff:
         Specifies the field order to assume when scanning progressive footage
