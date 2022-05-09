@@ -61,9 +61,8 @@ Deinterlacing
     original capture. As interlaced fields have half the resolution of a given
     moment, the new frames are stretched up to the original clip's height.
 
-    This is similar to :py:func:`havsfunc.Bob` except it uses VapourSynth's
-    standard resizing/dithering features instead of those from the 3rd party
-    fmtconv plugin.
+    VapourSynth R58 and above provides a built-in :py:func:`resize.Bob` that
+    should be used instead as it provides near-identical functionality.
 
     :param VideoNode clip: Video with interlaced frames to bob into
         the resulting clip.
@@ -88,8 +87,12 @@ Deinterlacing
 
     This should be used instead of :py:func:`vsfieldkit.assume_progressive`
     when progressive content has been encoded interlaced with vertical chroma
-    subsampling. This encoding method is popular on lazily produced PAL
-    territory DVDs for original 24p or 25p film content.
+    subsampling.
+
+    The primary use-case for this is removing 2:2 pulldown on 25p content
+    that's been hard-telecined to 50i in DV, DVB, or DVD formats with 4:2:0
+    chroma subsampling. It can also be used to resample chroma on frames
+    created with manual field matching that pulled up other pulldown patterns.
 
     When progressive content is encoded as interlaced pictures with 4:2:0
     chroma subsampling, the chroma samples span alternating instead of adjacent

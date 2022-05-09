@@ -1,4 +1,5 @@
 from typing import Callable, Optional
+from warnings import warn
 
 from vapoursynth import FieldBased, VideoNode, core
 
@@ -18,6 +19,11 @@ def bob(
     As interlaced fields have half the resolution of a given moment, the new
     frames are stretched up to the original clip's height.
     """
+    if hasattr(core.resize, 'Bob'):
+        warn(
+            'In VapourSynth >=R58, use the built-in core.resize.Bob instead.',
+            DeprecationWarning
+        )
     as_fields = clip.std.SeparateFields(tff=tff)
     stretched = convert_format_if_needed(
         as_fields,

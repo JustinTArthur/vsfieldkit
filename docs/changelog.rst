@@ -1,5 +1,10 @@
 Changelog
 =========
+Next Version
+------------
+* :py:func:`vsfieldkit.bob` is deprecated in VapourSynth R58+ in favor of
+  core.std.Bob.
+
 0.3.0
 -----
 * New functions for re-interpreting progressive frames with interlaced sub-sampled chroma:
