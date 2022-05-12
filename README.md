@@ -1,7 +1,7 @@
 # vsfieldkit
-Collection of functions for working with interlaced content in VapourSynth. It
-does not have any hard dependencies outside of
-[VapourSynth](http://www.vapoursynth.com/).
+Collection of functions for working with interlaced content in
+[VapourSynth](http://www.vapoursynth.com/). Most functions don't have any 
+external dependencies.
 
 Included functions:  
 `vsfieldkit.assume_bff(clip)`  
@@ -9,7 +9,8 @@ Included functions:
 `vsfieldkit.assume_tff(clip)`  
 `vsfieldkit.bob(clip)`  
 `vsfieldkit.double(clip)`  
-`vsfieldkit.fill_analog_frame_ends(clip)`  
+`vsfieldkit.fill_analog_frame_ends(clip)`
+(requires FillBorders and ContinuityFixer plugins)  
 `vsfieldkit.group_by_combed(clip)`  
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.resample_as_progressive(clip)`  

@@ -30,7 +30,9 @@ That said, it seems to be able to install vsfieldkit.
 
 Dependencies
 ^^^^^^^^^^^^
-Just VapourSynth.
+For most functions, just VapourSynth. The
+:py:func:`~vsfieldkit.fill_analog_frame_ends` function requires the FillBorders
+and ContinuityFixer plugins.
 
 Functions
 ---------
