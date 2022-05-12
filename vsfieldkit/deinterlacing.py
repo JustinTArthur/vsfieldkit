@@ -4,10 +4,7 @@ from warnings import warn
 from vapoursynth import FieldBased, VideoNode, core
 
 from vsfieldkit.util import convert_format_if_needed
-
-
-VS_FIELD_FROM_TOP = 1
-VS_FIELD_FROM_BOTTOM = 0
+from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
 
 def bob(

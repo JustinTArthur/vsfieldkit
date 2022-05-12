@@ -3,6 +3,8 @@ from enum import Enum
 from fractions import Fraction
 from typing import Union
 
+from vapoursynth import PresetFormat, VideoFormat, VideoNode
+
 
 class ChromaSubsampleScanning(Enum):
     SCAN_BLENDED = 'SCAN_BLENDED'
@@ -30,3 +32,5 @@ class InterlacedScanPostProcessor(Enum):
 
 
 Factor = Union[int, float, Decimal, Fraction]
+
+FormatSpecifier = Union[PresetFormat, VideoFormat, VideoNode, int]

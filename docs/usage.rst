@@ -249,6 +249,73 @@ Deinterlacing
         resampled = fixed_edges.resize.Spline36(format=clip.format)
         resampled.set_output()
 
+Repair
+^^^^^^
+.. function:: vsfieldkit.fill_analog_frame_ends( \
+        clip: VideoNode, \
+        top_blank_width: Optional[int] = None, \
+        bottom_blank_width: Optional[int] = None, \
+        continuity_radius: Union[int, Sequence[int]] = (5,), \
+        luma_splash_radius: int = 1, \
+        original_format: vsfieldkit.FormatSpecifier = None, \
+        restore_blank_detail=False \
+    ) -> VideoNode
+
+    Fills the beginning and end half-lines from frames digitized from or
+    for PAL/NTSC/SECAM signal. These lines are often half-blanked so that a CRT
+    monitor's electron beam won't light up phosphors as it zig-zags from the
+    bottom of screen to the top to start painting the next frame.
+
+    It aims to interpolate only the missing data, leaving clean pixels
+    in-tact. Interpolation is performed by repetition and averaging of adjacent
+    line data using the FillBorders plugin followed by least-squares regression
+    using the ContinuityFixer plugin.
+
+    If the bottom black bar coincides with head-switching noise from a camera
+    or VCR, the bottom bar repair will not be useful.
+
+    :param VideoNode clip:
+        Video from or for analog source. Can be in its original interlaced form
+        or de-interlaced.
+
+    :param int top_blank_width:
+        Width in pixels of the top-left black bar, including any horizontal
+        fade. If not supplied, assumed to be 65% of the top line. Set to 0 to
+        not attempt top line repair.
+
+    :param int bottom_blank_width:
+        Width in pixels of the bottom-right black bar, including any horizontal
+        fade. If not supplied, assumed to be 65% of the bottom line.  Set to 0
+        to not attempt bottom line repair.
+
+    :param continuity_radius:
+        Number of rows next to the black bar to use as input for interpolating
+        the new pixels to generate inside the bar.
+    :type continuity_radius: int or Sequence[int]
+
+    :param int luma_splash_radius:
+        Repair this many extra rows of luma data above or below the blanking
+        area. Adjacent picture data is often damaged by the blank line
+        if the video's fields are resized from their original signal height
+        (e.g. from 486i to 480i for NTSC to fit a DVD or DV stream) or if
+        the studio applied artificial sharpening.
+
+        If the adjacent rows have correct brightness even if they're gray, this
+        can be set to 0 to persist the clean luma data. The function's
+        adjustments for chroma sub-sampling should address adjacent gray area.
+
+    :param original_format:
+        If the clip to repair has been up-sampled for editing (e.g. from
+        YUV420P8 to YUV422P16), pass in the original clip's format here
+        so that correct assumptions are made for damage repair decisions.
+    :type original_format: PresetFormat, VideoFormat, VideoNode or int
+
+    :param bool restore_blank_detail:
+        In rare cases where the black bars contain salvageable image data, this
+        can be used to merge some of that original data on top of the
+        filled-and-continued repair of the bar. Otherwise, this introduces
+        noise.
+
 Utility
 ^^^^^^^
 
@@ -262,9 +329,12 @@ Utility
     comb detection, this splits the clip into segments based on whether they
     are combed or not. The values it generates are True, False, or ``None`` if
     it was marked combed, not combed, or not marked as well as the segment of
-    the clip.
+    the clip. This does not have any built-in comb detection.
 
-    This does not have any built-in comb detection.
+    This function requests rendered frames and blocks until it gets them. If
+    not needing to remove frames, splice additional frames, or analyze frames,
+    consider using :py:func:`std.FrameEval` or :py:func:`std.ModifyFrame`
+    instead for simple comb-based frame replacements.
 
     .. code-block:: python
         :caption: Example
@@ -290,6 +360,11 @@ Utility
     changes in field order. Field order is expressed as a
     :py:class:`FieldBased` enumeration or ``None`` if field order is not
     applicable or not available.
+
+    This function requests rendered frames and blocks until it gets them. If
+    not needing to remove frames, splice additional frames, or analyze frames,
+    consider using :py:func:`std.FrameEval` or :py:func:`std.ModifyFrame`
+    instead for simple field-order-based frame replacements.
 
     .. code-block:: python
         :caption: Example

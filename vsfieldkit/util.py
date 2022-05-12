@@ -1,6 +1,9 @@
+from functools import wraps
 from typing import Callable, Iterator, Optional, Tuple, Union
 
 from vapoursynth import ColorFamily, FieldBased, VideoFormat, VideoNode, core
+
+from vsfieldkit.types import FormatSpecifier
 
 FORMAT_INTRINSICS = (
     'color_family',
@@ -180,3 +183,32 @@ def black_clip_from_clip(clip, **blank_clip_args):
     )
 
     return clip.std.BlankClip(color=black_planes, **blank_clip_args)
+
+
+def format_from_specifier(specifier: FormatSpecifier) -> VideoFormat:
+    if isinstance(specifier, VideoFormat):
+        return specifier
+    elif isinstance(specifier, VideoNode):
+        return specifier.format
+    return core.get_video_format(specifier)
+
+
+def requires_plugins(
+    *plugins: Tuple[str, str]
+):
+    def decorator(original_func):
+
+        @wraps(original_func)
+        def wrapped_func(*args, **kwargs):
+            missing = []
+            for plugin_namespace, plugin_name in plugins:
+                if not hasattr(core, plugin_namespace):
+                    missing.append(f'{plugin_namespace} ({plugin_name})')
+            if missing:
+                raise Exception(f'Missing required plugin(s): '
+                                f'{",".join(missing)}')
+            return original_func(*args, **kwargs)
+
+        return wrapped_func
+
+    return decorator

@@ -1,7 +1,10 @@
 Changelog
 =========
-Next Version
+1.0.0
 ------------
+* Adds :py:func:`vsfieldkit.fill_analog_frame_ends` for cleaning the half-line
+  black bars at the top and bottom of analog video.
+
 Output Change:
 
 * :py:func:`vsfieldkit.bob` now defaults to shifting according to the field's
