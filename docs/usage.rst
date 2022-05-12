@@ -36,26 +36,21 @@ Functions
 ---------
 Reinterpreting
 ^^^^^^^^^^^^^^
-.. autofunction:: vsfieldkit.assume_bff(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.assume_bff(clip) -> VideoNode
 
-.. autofunction:: vsfieldkit.assume_progressive(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.assume_progressive(clip) -> VideoNode
 
     For progressive content that has been encoded as interlaced with vertical
     chroma subsampling, use :py:func:`vsfieldkit.resample_as_progressive` or
     :py:func:`vsfieldkit.upsample_as_progressive` instead.
 
-.. autofunction:: vsfieldkit.assume_tff(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.assume_tff(clip) -> VideoNode
 
 Deinterlacing
 ^^^^^^^^^^^^^
-.. function:: vsfieldkit.bob( \
-        clip: VideoNode, \
-        shift: bool = True, \
-        tff: Optional[bool] = None, \
-        keep_field_property: bool = True, \
-        kernel: Callable = core.resize.Spline36, \
-        dither_type: str = 'random' \
-    ) -> VideoNode
+.. function:: vsfieldkit.bob(clip, shift=True, tff=None, \
+        keep_field_property=True, kernel=core.resize.Spline36, \
+        dither_type='random')
 
     A simple bob deinterlacer. Returns a clip of progressive frames, each
     consisting of a field from the original interlaced clip in order of its
@@ -89,7 +84,11 @@ Deinterlacing
         dithering method will be used to avoid banding and other unnatural
         artifacts caused by rounding at low bit rate.
 
-.. function:: vsfieldkit.resample_as_progressive(clip: VideoNode, kernel: Callable = core.resize.Spline36, dither_type: str = 'random') -> VideoNode
+.. function:: vsfieldkit.resample_as_progressive( \
+        clip, \
+        kernel=core.resize.Spline36, \
+        dither_type='random' \
+    ) -> VideoNode
 
     This should be used instead of :py:func:`vsfieldkit.assume_progressive`
     when progressive content has been encoded interlaced with vertical chroma
@@ -127,17 +126,15 @@ Deinterlacing
         artifacts caused by rounding at low bit rate.
 
 .. function:: vsfieldkit.scan_interlaced( \
-        clip: VideoNode, \
-        warmup_clip: Optional[VideoNode] = None, \
-        tff: Optional[bool] = None, \
-        chroma_subsample_scanning: ChromaSubsampleScanning = ( \
-            ChromaSubsampleScanning.SCAN_LATEST \
-        ), \
-        decay_factor: Optional[Factor] = None, \
-        decay_base: Optional[VideoNode] = None, \
-        dither_type: str = 'random', \
-        post_processing: Sequence[InterlacedScanPostProcessor] = (), \
-        post_processing_blend_kernel: Callable = core.resize.Spline36, \
+        clip, \
+        warmup_clip=None, \
+        tff=None, \
+        chroma_subsample_scanning=ChromaSubsampleScanning.SCAN_LATEST, \
+        decay_factor=None, \
+        decay_base=None, \
+        dither_type='random', \
+        post_processing=(), \
+        post_processing_blend_kernel=core.resize.Spline36, \
     ) -> VideoNode
 
     Returns a new clip where interlaced fields from the original clip are
@@ -225,7 +222,7 @@ Deinterlacing
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.InterlacedScanPostProcessor` enum.
 
-.. function:: vsfieldkit.upsample_as_progressive(clip: VideoNode) -> VideoNode
+.. function:: vsfieldkit.upsample_as_progressive(clip) -> VideoNode
 
     Returns a clip now marked as progressive and with any vertical chroma
     subsampling removed so that previously-alternating chroma lines will be
@@ -252,12 +249,12 @@ Deinterlacing
 Repair
 ^^^^^^
 .. function:: vsfieldkit.fill_analog_frame_ends( \
-        clip: VideoNode, \
-        top_blank_width: Optional[int] = None, \
-        bottom_blank_width: Optional[int] = None, \
-        continuity_radius: Union[int, Sequence[int]] = (5,), \
-        luma_splash_radius: int = 1, \
-        original_format: vsfieldkit.FormatSpecifier = None, \
+        clip, \
+        top_blank_width=None, \
+        bottom_blank_width=None, \
+        continuity_radius=(5,), \
+        luma_splash_radius=1, \
+        original_format=None, \
         restore_blank_detail=False \
     ) -> VideoNode
 
@@ -279,14 +276,14 @@ Repair
         or de-interlaced.
 
     :param int top_blank_width:
-        Width in pixels of the top-left black bar, including any horizontal
-        fade. If not supplied, assumed to be 65% of the top line. Set to 0 to
-        not attempt top line repair.
+        Width in pixels of the top-left black bar at its longest, including any
+        horizontal fade. If not supplied, assumed to be 65% of the top line.
+        Set to 0 to not attempt top line repair.
 
     :param int bottom_blank_width:
-        Width in pixels of the bottom-right black bar, including any horizontal
-        fade. If not supplied, assumed to be 65% of the bottom line.  Set to 0
-        to not attempt bottom line repair.
+        Width in pixels of the bottom-right black bar at its longest, including
+        any horizontal fade. If not supplied, assumed to be 65% of the bottom
+        line.  Set to 0 to not attempt bottom line repair.
 
     :param continuity_radius:
         Number of rows next to the black bar to use as input for interpolating
@@ -294,11 +291,11 @@ Repair
     :type continuity_radius: int or Sequence[int]
 
     :param int luma_splash_radius:
-        Repair this many extra rows of luma data above or below the blanking
-        area. Adjacent picture data is often damaged by the blank line
-        if the video's fields are resized from their original signal height
-        (e.g. from 486i to 480i for NTSC to fit a DVD or DV stream) or if
-        the studio applied artificial sharpening.
+        Repair this many extra rows of luma data above or below the half line.
+        Adjacent picture data is often damaged by the black bar if the video's
+        fields are resized from their original signal height (e.g. from 486i
+        to 480i for NTSC to fit a DVD or DV stream) or if the studio applied
+        artificial sharpening.
 
         If the adjacent rows have correct brightness even if they're gray, this
         can be set to 0 to persist the clean luma data. The function's
@@ -319,10 +316,10 @@ Repair
 Utility
 ^^^^^^^
 
-.. autofunction:: vsfieldkit.double(clip: VideoNode) -> VideoNode
+.. autofunction:: vsfieldkit.double(clip) -> VideoNode
 
 .. function:: vsfieldkit.group_by_combed( \
-        clip: VideoNode \
+        clip \
     ) -> Iterator[Tuple[Union[bool, None], VideoNode]]
 
     Assuming the passed-in clip was processed by a filter that performs
@@ -353,7 +350,7 @@ Utility
         vs.core.std.Splice(progressive_clips).set_output()
 
 .. function:: vsfieldkit.group_by_field_order( \
-        clip: VideoNode \
+        clip \
     ) -> Iterator[Tuple[Union[FieldBased, None], VideoNode]]
 
     Generates field orders and clips from the passed in clip split up by

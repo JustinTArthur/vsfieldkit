@@ -7,7 +7,9 @@ Included functions:
 `vsfieldkit.assume_bff(clip)`  
 `vsfieldkit.assume_progressive(clip)`  
 `vsfieldkit.assume_tff(clip)`  
+`vsfieldkit.bob(clip)`  
 `vsfieldkit.double(clip)`  
+`vsfieldkit.fill_analog_frame_ends(clip)`  
 `vsfieldkit.group_by_combed(clip)`  
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.resample_as_progressive(clip)`  
