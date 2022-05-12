@@ -2,11 +2,6 @@ Changelog
 =========
 1.0.1
 ------------
-* Fixes :py:func:`vsfieldkit.fill_analog_frame_ends` blank widths of ``0`` to
-  support leaving an edge unrepaired.
-
-1.0.0
-------------
 * Adds :py:func:`vsfieldkit.fill_analog_frame_ends` for cleaning the half-line
   black bars at the top and bottom of analog video.
 
@@ -15,6 +10,8 @@ Output Change:
 * :py:func:`vsfieldkit.bob` now defaults to shifting according to the field's
   position. Feature added for completion, but it's also deprecated
   in favor of :py:func:`resize.Bob` in VapourSynth R58+.
+
+Version 1.0.0 was yanked for an immediate bug fix.
 
 0.3.0
 -----
