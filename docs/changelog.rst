@@ -1,5 +1,10 @@
 Changelog
 =========
+1.0.1
+------------
+* Fixes :py:func:`vsfieldkit.fill_analog_frame_ends` blank widths of ``0`` to
+  support leaving an edge unrepaired.
+
 1.0.0
 ------------
 * Adds :py:func:`vsfieldkit.fill_analog_frame_ends` for cleaning the half-line

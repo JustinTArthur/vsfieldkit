@@ -278,12 +278,12 @@ Repair
     :param int top_blank_width:
         Width in pixels of the top-left black bar at its longest, including any
         horizontal fade. If not supplied, assumed to be 65% of the top line.
-        Set to 0 to not attempt top line repair.
+        Set to ``0`` to not attempt top line repair.
 
     :param int bottom_blank_width:
         Width in pixels of the bottom-right black bar at its longest, including
         any horizontal fade. If not supplied, assumed to be 65% of the bottom
-        line.  Set to 0 to not attempt bottom line repair.
+        line.  Set to ``0`` to not attempt bottom line repair.
 
     :param continuity_radius:
         Number of rows next to the black bar to use as input for interpolating

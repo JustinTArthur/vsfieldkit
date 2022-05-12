@@ -234,27 +234,36 @@ def _repaired_frame_edges(
         (repair_height + (chroma_height_pixels - 1))
         & ~(chroma_height_pixels - 1)
     )
-    orig_top_right = clip.std.Crop(
-        left=top_blank_width,
-        bottom=clip.height - repair_height
-    )
-    repaired_top_left = top_interpolated.std.Crop(
-        right=top_interpolated.width - top_blank_width,
-        bottom=top_interpolated.height - repair_height
-    )
-    orig_bottom_left = clip.std.Crop(
-        right=bottom_blank_width,
-        top=clip.height - repair_height
-    )
-    repaired_bottom_right = bottom_interpolated.std.Crop(
-        left=bottom_interpolated.width - bottom_blank_width,
-        top=bottom_interpolated.height - repair_height
-    )
-
-    repaired_top_edge = core.std.StackHorizontal(
-        (repaired_top_left, orig_top_right)
-    )
-    repaired_bottom_edge = core.std.StackHorizontal(
-        (orig_bottom_left, repaired_bottom_right)
-    )
+    if top_blank_width:
+        orig_top_right = clip.std.Crop(
+            left=top_blank_width,
+            bottom=clip.height - repair_height
+        )
+        repaired_top_left = top_interpolated.std.Crop(
+            right=top_interpolated.width - top_blank_width,
+            bottom=top_interpolated.height - repair_height
+        )
+        repaired_top_edge = core.std.StackHorizontal(
+            (repaired_top_left, orig_top_right)
+        )
+    else:
+        repaired_top_edge = clip.std.Crop(
+            bottom=clip.height - repair_height
+        )
+    if bottom_blank_width:
+        orig_bottom_left = clip.std.Crop(
+            right=bottom_blank_width,
+            top=clip.height - repair_height
+        )
+        repaired_bottom_right = bottom_interpolated.std.Crop(
+            left=bottom_interpolated.width - bottom_blank_width,
+            top=bottom_interpolated.height - repair_height
+        )
+        repaired_bottom_edge = core.std.StackHorizontal(
+            (orig_bottom_left, repaired_bottom_right)
+        )
+    else:
+        repaired_bottom_edge = clip.std.Crop(
+            top=clip.height - repair_height
+        )
     return repaired_top_edge, repaired_bottom_edge
