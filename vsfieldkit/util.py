@@ -212,3 +212,25 @@ def requires_plugins(
         return wrapped_func
 
     return decorator
+
+
+def requires_one_of(
+    *plugins: Tuple[str, str]
+):
+    def decorator(original_func):
+        @wraps(original_func)
+        def wrapped_func(*args, **kwargs):
+            missing = []
+            for plugin_namespace, plugin_name in plugins:
+                if hasattr(core, plugin_namespace):
+                    break
+                else:
+                    missing.append(f'{plugin_namespace} ({plugin_name})')
+            else:
+                raise Exception(f'Requires any one of these plugins: '
+                                f'{",".join(missing)}')
+            return original_func(*args, **kwargs)
+
+        return wrapped_func
+
+    return decorator

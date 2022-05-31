@@ -32,7 +32,7 @@ Dependencies
 ^^^^^^^^^^^^
 For most functions, just VapourSynth. The
 :py:func:`~vsfieldkit.fill_analog_frame_ends` function requires the FillBorders
-and ContinuityFixer plugins.
+and either the ContinuityFixer or EdgeFixer plugins.
 
 Functions
 ---------
@@ -268,7 +268,7 @@ Repair
     It aims to interpolate only the missing data, leaving clean pixels
     in-tact. Interpolation is performed by repetition and averaging of adjacent
     line data using the FillBorders plugin followed by least-squares regression
-    using the ContinuityFixer plugin.
+    using the ContinuityFixer or EdgeFixer plugin.
 
     If the bottom black bar coincides with head-switching noise from a camera
     or VCR, the bottom bar repair will not be useful.

@@ -10,7 +10,7 @@ Included functions:
 `vsfieldkit.bob(clip)`  
 `vsfieldkit.double(clip)`  
 `vsfieldkit.fill_analog_frame_ends(clip)`
-(requires FillBorders and ContinuityFixer plugins)  
+(requires FillBorders and either ContinuityFixer or EdgeFixer plugins)  
 `vsfieldkit.group_by_combed(clip)`  
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.resample_as_progressive(clip)`  

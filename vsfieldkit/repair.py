@@ -1,17 +1,18 @@
 from math import ceil
-from typing import Optional, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
-from vapoursynth import (ColorFamily, FieldBased, PresetFormat, VideoFormat,
-                         VideoNode, core)
+from vapoursynth import ColorFamily, FieldBased, VideoNode, core
 
 from vsfieldkit.types import FormatSpecifier
-from vsfieldkit.util import format_from_specifier, requires_plugins
+from vsfieldkit.util import (format_from_specifier, requires_one_of,
+                             requires_plugins)
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
 FULL_ANALOG_DISPLAY_LINES = frozenset((486, 576))
 
 
-@requires_plugins(('fb', 'fillborders'), ('cf', 'ContinuityFixer'))
+@requires_plugins(('fb', 'fillborders'))
+@requires_one_of(('cf', 'ContinuityFixer'), ('edgefixer', 'EdgeFixer'))
 def fill_analog_frame_ends(
     clip: VideoNode,
     top_blank_width: Optional[int] = None,
@@ -75,6 +76,11 @@ def fill_analog_frame_ends(
         + (continuity_radius[-1:] * (num_planes - len(continuity_radius)))
     )
 
+    if hasattr(core, 'edgefixer'):
+        continue_func = _continue_edge_with_edgefixer
+    else:
+        continue_func = core.cf.ContinuityFixer
+
     # Separate fields. Default tff doesn't matter as we don't care about
     # order, only position.
     fields = clip.std.SeparateFields(tff=True)
@@ -86,7 +92,8 @@ def fill_analog_frame_ends(
         continue_sizes=continue_sizes,
         continuity_radius=continuity_radius,
         color_sample_height=orig_color_sample_equiv,
-        restore_blank_detail=restore_blank_detail
+        restore_blank_detail=restore_blank_detail,
+        continue_func=continue_func
     )
     progressive_top_edge, progressive_bottom_edge = _repaired_frame_edges(
         clip,
@@ -96,7 +103,8 @@ def fill_analog_frame_ends(
         continue_sizes=continue_sizes,
         continuity_radius=continuity_radius,
         color_sample_height=orig_color_sample_equiv,
-        restore_blank_detail=restore_blank_detail
+        restore_blank_detail=restore_blank_detail,
+        continue_func=continue_func
     )
     progressive_repaired = clip
     if top_blank_width:
@@ -167,7 +175,8 @@ def _repaired_frame_edges(
     fill_sizes: Sequence[int],
     continuity_radius: Sequence[int],
     color_sample_height: int,
-    restore_blank_detail: bool
+    restore_blank_detail: bool,
+    continue_func: Callable
 ) -> Tuple[VideoNode, VideoNode]:
     """Returns repaired top and bottom edges with repairs. Can be fed
     individual field frames or deinterlaced frames. Will be used
@@ -178,12 +187,7 @@ def _repaired_frame_edges(
 
     # Repeated data provides saner input to cf's least-squares regression due
     # to a horizontal fade often present on the edge.
-    field_planes = [
-        clip.std.ShufflePlanes(
-            planes=(plane,),
-            colorfamily=ColorFamily.GRAY
-        ) for plane in range(num_planes)
-    ]
+    field_planes = clip.std.SplitPlanes()
 
     filled_top_planes = [
         plane.fb.FillBorders(top=fill_radius, mode='fixborders')
@@ -203,27 +207,32 @@ def _repaired_frame_edges(
         planes=[0 for _plane in range(num_planes)],
         colorfamily=color_family
     )
-    top_interpolated = filled_top.cf.ContinuityFixer(
+    top_interpolated = continue_func(
+        filled_top,
         top=continue_sizes,
         radius=continuity_radius
     )
-    bottom_interpolated = filled_bottom.cf.ContinuityFixer(
+    bottom_interpolated = continue_func(
+        filled_bottom,
         bottom=continue_sizes,
         radius=continuity_radius
     )
     if restore_blank_detail:
         # Merge continuity without a prefill on top of the prefill continuity
         top_interpolated = top_interpolated.std.Merge(
-            clip.cf.ContinuityFixer(
+            continue_func(
+                clip,
                 top=continue_sizes,
                 radius=continuity_radius
             )
         )
         bottom_interpolated = bottom_interpolated.std.Merge(
-            clip.cf.ContinuityFixer(
+            continue_func(
+                clip,
                 bottom=continue_sizes,
                 radius=continuity_radius
-            ))
+            )
+        )
 
     # Only bring out the portions that actually needed repair:
     chroma_height_pixels = 2 ** clip.format.subsampling_h
@@ -267,3 +276,35 @@ def _repaired_frame_edges(
             top=clip.height - repair_height
         )
     return repaired_top_edge, repaired_bottom_edge
+
+
+def _continue_edge_with_edgefixer(
+    clip: VideoNode,
+    left: Sequence[int] = (0,),
+    top: Sequence[int] = (0,),
+    right: Sequence[int] = (0,),
+    bottom: Sequence[int] = (0,),
+    radius: Sequence[int] = (0,)
+) -> VideoNode:
+    num_planes = clip.format.num_planes
+    left = left + (left[-1:] * (num_planes - len(left)))
+    right = right + (right[-1:] * (num_planes - len(right)))
+    top = top + (top[-1:] * (num_planes - len(top)))
+    bottom = bottom + (bottom[-1:] * (num_planes - len(bottom)))
+    radius = radius + (radius[-1:] * (num_planes - len(radius)))
+
+    planes = clip.std.SplitPlanes()
+    fixed_planes = []
+    for n, plane in enumerate(planes):
+        if any((left[n], top[n], right[n], bottom[n], radius[n])):
+            fixed_plane = plane.edgefixer.Continuity(left[n], top[n], right[n],
+                                                     bottom[n], radius[n])
+        else:
+            fixed_plane = plane
+        fixed_planes.append(fixed_plane)
+
+    return core.std.ShufflePlanes(
+        fixed_planes,
+        planes=(0,) * num_planes,
+        colorfamily=clip.format.color_family
+    )
