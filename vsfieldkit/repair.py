@@ -1,7 +1,8 @@
+import sys
 from math import ceil
 from typing import Callable, Optional, Sequence, Tuple, Union
 
-from vapoursynth import ColorFamily, FieldBased, VideoNode, core
+from vapoursynth import ColorFamily, Error, FieldBased, VideoNode, core
 
 from vsfieldkit.types import FormatSpecifier
 from vsfieldkit.util import (format_from_specifier, requires_one_of,
@@ -20,7 +21,8 @@ def fill_analog_frame_ends(
     continuity_radius: Union[int, Sequence[int]] = (5,),
     luma_splash_radius: int = 1,
     original_format: Optional[FormatSpecifier] = None,
-    restore_blank_detail=False
+    restore_blank_detail=False,
+    prefill_mode='fillmargins'
 ) -> VideoNode:
     """Fills the beginning and end half-lines from frames digitized for or
     from PAL/NTSC signal. It aims to interpolate only the missing data, leaving
@@ -81,20 +83,59 @@ def fill_analog_frame_ends(
     else:
         continue_func = core.cf.ContinuityFixer
 
-    # Separate fields. Default tff doesn't matter as we don't care about
-    # order, only position.
-    fields = clip.std.SeparateFields(tff=True)
-    fields_top_edge, fields_bottom_edge = _repaired_frame_edges(
-        fields,
-        top_blank_width=top_blank_width,
-        bottom_blank_width=bottom_blank_width,
-        fill_sizes=fill_sizes,
-        continue_sizes=continue_sizes,
-        continuity_radius=continuity_radius,
-        color_sample_height=orig_color_sample_equiv,
-        restore_blank_detail=restore_blank_detail,
-        continue_func=continue_func
-    )
+    # Separate fields if chroma subsampling allows. Default tff doesn't matter
+    # as we don't care about order, only position.
+    if (clip.height // 2) % chroma_height == 0:
+        # Current crop allows us to process as interlaced in case interlaced
+        # frames are encountered.
+        fields = clip.std.SeparateFields(tff=True)
+        fields_top_edge, fields_bottom_edge = _repaired_frame_edges(
+            fields,
+            top_blank_width=top_blank_width,
+            bottom_blank_width=bottom_blank_width,
+            fill_sizes=fill_sizes,
+            continue_sizes=continue_sizes,
+            continuity_radius=continuity_radius,
+            color_sample_height=orig_color_sample_equiv,
+            restore_blank_detail=restore_blank_detail,
+            continue_func=continue_func,
+            prefill_mode=prefill_mode
+        )
+        if top_blank_width:
+            fields_repaired_top = core.std.StackVertical((
+                fields_top_edge,
+                fields.std.Crop(top=fields_top_edge.height)
+            ))
+        else:
+            fields_repaired_top = fields
+        if bottom_blank_width:
+            fields_repaired_bottom = core.std.StackVertical((
+                fields.std.Crop(bottom=fields_bottom_edge.height),
+                fields_bottom_edge
+            ))
+        else:
+            fields_repaired_bottom = fields
+        replacement_by_position = {
+            VS_FIELD_FROM_TOP: fields_repaired_top,
+            VS_FIELD_FROM_BOTTOM: fields_repaired_bottom,
+        }
+
+        def repair_field_frame(n, f):
+            return replacement_by_position[f.props._Field]
+
+        repaired_fields = fields.std.FrameEval(
+            repair_field_frame,
+            prop_src=(fields,),
+            clip_src=tuple(replacement_by_position.values())
+        )
+        # Re-interlace fields
+        interlaced_repaired = repaired_fields.std.DoubleWeave()[::2]
+        # Copy original properties in case we overwrote field-related flags
+        interlaced_repaired = interlaced_repaired.std.CopyFrameProps(clip)
+    else:
+        # Current crop doesn't allow processing as interlaced due to chroma
+        # sub-sampling.
+        interlaced_repaired = None
     progressive_top_edge, progressive_bottom_edge = _repaired_frame_edges(
         clip,
         top_blank_width=top_blank_width,
@@ -104,64 +145,46 @@ def fill_analog_frame_ends(
         continuity_radius=continuity_radius,
         color_sample_height=orig_color_sample_equiv,
         restore_blank_detail=restore_blank_detail,
-        continue_func=continue_func
+        continue_func=continue_func,
+        prefill_mode=prefill_mode
     )
     progressive_repaired = clip
     if top_blank_width:
-        fields_repaired_top = core.std.StackVertical((
-            fields_top_edge,
-            fields.std.Crop(top=fields_top_edge.height)
-        ))
         progressive_repaired = core.std.StackVertical((
             progressive_top_edge,
             progressive_repaired.std.Crop(
                 top=progressive_top_edge.height
             )
         ))
-    else:
-        fields_repaired_top = fields
     if bottom_blank_width:
-        fields_repaired_bottom = core.std.StackVertical((
-            fields.std.Crop(bottom=fields_bottom_edge.height),
-            fields_bottom_edge
-        ))
         progressive_repaired = core.std.StackVertical((
             progressive_repaired.std.Crop(
                 bottom=progressive_bottom_edge.height
             ),
             progressive_bottom_edge
         ))
-    else:
-        fields_repaired_bottom = fields
-    replacement_by_position = {
-        VS_FIELD_FROM_TOP: fields_repaired_top,
-        VS_FIELD_FROM_BOTTOM: fields_repaired_bottom,
-    }
-
-    def repair_field_frame(n, f):
-        return replacement_by_position[f.props._Field]
-
-    repaired_fields = fields.std.FrameEval(
-        repair_field_frame,
-        prop_src=(fields,),
-        clip_src=tuple(replacement_by_position.values())
-    )
-    # Re-interlace fields
-    interlaced_repaired = repaired_fields.std.DoubleWeave()[::2]
-    # Copy original properties in case we overwrote field-related flags
-    interlaced_repaired = interlaced_repaired.std.CopyFrameProps(clip)
 
     def repair_frame(n, f):
         _field_based = f.props.get('_FieldBased')
         if _field_based in (FieldBased.FIELD_TOP, FieldBased.FIELD_BOTTOM):
+            if interlaced_repaired is None:
+                raise Error(
+                    "Can't repair interlaced frames when height not aligned "
+                    "with chroma subsamples."
+                )
             return interlaced_repaired
         else:
             return progressive_repaired
 
+    if interlaced_repaired:
+        repair_sources = (interlaced_repaired, progressive_repaired)
+    else:
+        repair_sources = (progressive_repaired,)
+
     repaired_frames = clip.std.FrameEval(
         repair_frame,
         prop_src=(clip,),
-        clip_src=(interlaced_repaired, progressive_repaired)
+        clip_src=repair_sources
     )
 
     return repaired_frames
@@ -176,7 +199,8 @@ def _repaired_frame_edges(
     continuity_radius: Sequence[int],
     color_sample_height: int,
     restore_blank_detail: bool,
-    continue_func: Callable
+    continue_func: Callable,
+    prefill_mode: str
 ) -> Tuple[VideoNode, VideoNode]:
     """Returns repaired top and bottom edges with repairs. Can be fed
     individual field frames or deinterlaced frames. Will be used
@@ -189,14 +213,26 @@ def _repaired_frame_edges(
     # to a horizontal fade often present on the edge.
     field_planes = clip.std.SplitPlanes()
 
-    filled_top_planes = [
-        plane.fb.FillBorders(top=fill_radius, mode='fixborders')
-        for plane, fill_radius in zip(field_planes, fill_sizes)
-    ]
-    filled_bottom_planes = [
-        plane.fb.FillBorders(bottom=fill_radius, mode='fixborders')
-        for plane, fill_radius in zip(field_planes, fill_sizes)
-    ]
+    try:
+        filled_top_planes = [
+            plane.fb.FillBorders(top=fill_radius, mode=prefill_mode)
+            for plane, fill_radius in zip(field_planes, fill_sizes)
+        ]
+        filled_bottom_planes = [
+            plane.fb.FillBorders(bottom=fill_radius, mode=prefill_mode)
+            for plane, fill_radius in zip(field_planes, fill_sizes)
+        ]
+    except Error as e:
+        if str(e).startswith('FillBorders: Invalid mode.'):
+            raise Error(
+                f'Pre-fill mode "{prefill_mode}" not supported by this '
+                f'version of the fillborders plugin. Consider passing '
+                f'prefill_mode="fillmargins" to fill_analog_frame_ends or '
+                f'upgrading the fillborders (fb) plugin.'
+            ) from e
+        else:
+            raise
+
     filled_top = core.std.ShufflePlanes(
         clips=filled_top_planes,  # filled_primary_tops + filled_chroma_tops,
         planes=[0 for _plane in range(num_planes)],
