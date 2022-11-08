@@ -257,7 +257,8 @@ Repair
         continuity_radius=(5,), \
         luma_splash_radius=1, \
         original_format=None, \
-        restore_blank_detail=False \
+        restore_blank_detail=False, \
+        prefill_mode='fillmargins' \
     ) -> VideoNode
 
     Fills the beginning and end half-lines from frames digitized from or
@@ -314,6 +315,15 @@ Repair
         can be used to merge some of that original data on top of the
         filled-and-continued repair of the bar. Otherwise, this introduces
         noise.
+
+    :param str prefill_mode:
+        How to fill the blank line prior to interpolation. This is
+        passed directly to the fillborders plugin. This pre-fill is
+        used to improve the quality of the least-squares regression that is
+        applied afterwards.
+
+        As of fillborders v2, possible values are ``"fillmargins"``,
+        ``"mirror"``, and ``"repeat"``.
 
 Utility
 ^^^^^^^
