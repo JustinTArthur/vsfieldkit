@@ -6,7 +6,7 @@ from vapoursynth import ColorFamily, SampleType, VideoNode, core
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor,
                               InterlacedScanPostProcessor)
 from vsfieldkit.util import (assume_progressive, black_clip_from_clip,
-                             convert_format_if_needed)
+                             brighten, convert_format_if_needed)
 
 post_processing_routines: Mapping[InterlacedScanPostProcessor, Callable]
 
@@ -19,6 +19,7 @@ def scan_interlaced(
         ChromaSubsampleScanning.SCAN_LATEST
     ),
     dither_type: str = 'random',
+    attack_factor: Optional[Factor] = None,
     decay_base: Optional[VideoNode] = None,
     decay_factor: Optional[Factor] = None,
     post_processing: Sequence[InterlacedScanPostProcessor] = (),
@@ -31,15 +32,15 @@ def scan_interlaced(
     deinterlacing. Like bob deinterlacing, it doubles the amount of frames
     (and frame rate accordingly) produced to portray the moments represented in
     the interlaced footage."""
-    # TFF (w is warmup field)
-    # Top field source: 1 1 2 2 3 3 4 4 5 5
-    # Bot field source: w 1 1 2 2 3 3 4 4 5
-    # Desired Result:   1a+wb 1a+1b 2a+1b 2a+2b 3a+2b
+    # TFF (w is warmup frame)
+    # Top field source frame: 1 1 2 2 3 3 4 4 5 5
+    # Bot field source frame: w 1 1 2 2 3 3 4 4 5
+    # Desired Result: 1a+wb 1a+1b 2a+1b 2a+2b 3a+2b
 
     # BFF
-    # Top field source: w 1 1 2 2 3 3 4 4 5
-    # Bot field source: 1 1 2 2 3 3 4 4 5 5
-    # Desired Result:   wa+1b 1a+1b 2a+1b 2a+2b 3a+2b
+    # Top field source frame: w 1 1 2 2 3 3 4 4 5
+    # Bot field source frame: 1 1 2 2 3 3 4 4 5 5
+    # Desired Result: wa+1b 1a+1b 2a+1b 2a+2b 3a+2b
 
     if not warmup_clip:
         warmup_clip = black_clip_from_clip(clip, length=1)
@@ -72,7 +73,7 @@ def scan_interlaced(
             decay_base,
             format=scannable_clip.format
         )
-        # Repeat decay base for every frame of orignal clip:
+        # Repeat decay base for every frame of original clip:
         decay_clip = scannable_decay_base[0] * len(scannable_clip)
         # Ensure exact same field order instructions as original:
         decay_clip = decay_clip.std.CopyFrameProps(scannable_clip)
@@ -87,9 +88,14 @@ def scan_interlaced(
         )
         phosphor_fields = _decay_old_field(
             phosphor_fields,
-            decay_factor=decay_factor,
+            factor=decay_factor,
             decay_fields=decayed_phosphor_fields,
             include_chroma=decay_chroma_planes
+        )
+    if attack_factor is not None and attack_factor != 1:
+        phosphor_fields = _brighten_fresh_fields(
+            phosphor_fields,
+            factor=attack_factor
         )
 
     laced = core.std.DoubleWeave(phosphor_fields, tff=True)[::2]
@@ -205,7 +211,7 @@ def _repeat_new_field_chroma(phosphor_fields: VideoNode, offset=0):
 
 def _decay_old_field(
     phosphor_fields: VideoNode,
-    decay_factor: Factor,
+    factor: Factor,
     decay_fields: VideoNode,
     include_chroma: bool,
     offset=0
@@ -250,13 +256,13 @@ def _decay_old_field(
     )
     if mask_format.sample_type == SampleType.FLOAT:
         mask_max = 1.0
-        decay_factor = float(decay_factor)
+        factor = float(factor)
     else:
         mask_max = (2 ** mask_format.bits_per_sample) - 1
     mask = old_fields.std.BlankClip(
         length=len(old_fields),
         format=mask_format,
-        color=round(decay_factor * mask_max)
+        color=round(factor * mask_max)
     )
 
     # Chroma planes only decayed if no vertical subsampling, otherwise
@@ -273,6 +279,54 @@ def _decay_old_field(
     )
     edited_interleaved = core.std.Interleave(
         (fresh_fields, decayed_fields),
+        modify_duration=False
+    )
+    edited_ordered = edited_interleaved.std.SelectEvery(
+        cycle=4,
+        offsets=(0, 1, 3, 2),
+        modify_duration=False
+    )
+
+    if offset:
+        return pre_offset + edited_ordered
+    return edited_ordered
+
+
+def _brighten_fresh_fields(
+    phosphor_fields: VideoNode,
+    factor: Factor,
+    offset=0
+):
+    """Returns a new clip of scanned field frames where the newly
+    scanned (fresh) field is brightened."""
+    if offset:
+        pre_offset = phosphor_fields[:offset]
+        edit_range = phosphor_fields[offset:]
+    else:
+        pre_offset = None
+        edit_range = phosphor_fields
+
+    # Given a scan from TFF:
+    # NewTop  WarmupBtm OldTop  NewBtm  NewTop  OldBtm  OldTop NewBtm  NewTop…
+    # or BFF:
+    # NewBtm  WarmupTop OldBtm  NewTop  NewBtm  OldTop  OldBtm NewTop  NewBtm…
+    # Brighten cadence:
+    # ^                         ^       ^                      ^       ^
+    fresh_fields = edit_range.std.SelectEvery(
+        cycle=4,
+        offsets=(0, 3),
+        modify_duration=False
+    )
+    brightened_fresh_fields = brighten(fresh_fields, factor)
+
+    old_fields = edit_range.std.SelectEvery(
+        cycle=4,
+        offsets=(1, 2),
+        modify_duration=False
+    )
+
+    edited_interleaved = core.std.Interleave(
+        (brightened_fresh_fields, old_fields),
         modify_duration=False
     )
     edited_ordered = edited_interleaved.std.SelectEvery(

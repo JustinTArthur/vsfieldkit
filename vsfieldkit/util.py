@@ -1,9 +1,9 @@
 from typing import Callable, Iterator, Optional, Tuple, Union
 
-from vapoursynth import (ColorFamily, Error, FieldBased, VideoFormat,
-                         VideoNode, core)
+from vapoursynth import (ColorFamily, ColorRange, Error, FieldBased,
+                         VideoFormat, VideoNode, core)
 
-from vsfieldkit.types import FormatSpecifier
+from vsfieldkit.types import Factor, FormatSpecifier
 
 FORMAT_INTRINSICS = (
     'color_family',
@@ -167,7 +167,7 @@ def black_clip_from_clip(clip, **blank_clip_args):
 
     black_planes = []
     # Luma Plane
-    if is_integer and color_range == 1:
+    if is_integer and color_range == ColorRange.RANGE_LIMITED:
         floor_multiplier = (2 ** bit_depth) / 256
         limited_black = 16 * floor_multiplier
         black_planes.append(limited_black)
@@ -183,6 +183,36 @@ def black_clip_from_clip(clip, **blank_clip_args):
     )
 
     return clip.std.BlankClip(color=black_planes, **blank_clip_args)
+
+
+def brighten(clip: VideoNode, factor: Factor):
+    """Increases intensity across all colors.
+    This may not map 1:1 with an H′S′V′ family V′ increase.
+    With Y′CbCr, only increases Y′.
+
+    Note this increase ignores the clip's OETF (transfer characteristic)
+    so the factor is applied as if the values are linear light levels.
+    """
+    format: VideoFormat = clip.format
+    is_integer = (format.sample_type == 0)
+    color_range = clip.get_frame(0).props.get('_ColorRange')
+
+    if is_integer:
+        if color_range == ColorRange.RANGE_LIMITED:
+            ceiling_multiplier = (2 ** format.bits_per_sample) / 256
+            max_val = 235 * ceiling_multiplier
+        else:
+            max_val = (2 ** format.bits_per_sample) - 1
+    else:
+        max_val = 1.0
+
+    plane_expr = f'x {float(factor)} * {max_val} min'
+    if format.color_family == ColorFamily.YUV:
+        expr = (plane_expr, '')
+    else:
+        expr = (plane_expr,)
+
+    return clip.std.Expr(expr)
 
 
 def format_from_specifier(specifier: FormatSpecifier) -> VideoFormat:

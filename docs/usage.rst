@@ -132,6 +132,7 @@ Deinterlacing
         warmup_clip=None, \
         tff=None, \
         chroma_subsample_scanning=ChromaSubsampleScanning.SCAN_LATEST, \
+        attack_factor=None, \
         decay_factor=None, \
         decay_base=None, \
         dither_type='random', \
@@ -192,6 +193,14 @@ Deinterlacing
 
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.ChromaSubsampleScanning` enum.
+
+    :param Factor attack_factor:
+        Amount by which to brighten lines that have been scanned in the
+        current moment. Usually expressed as a
+        :py:class:`float`, :py:class:`~decimal.Decimal` or
+        :py:class:`~fractions.Fraction` where ``1`` means the newly
+        scanned line is not brightened, ``2`` means the line is doubled
+        in brightness.
 
     :param Factor decay_factor:
         Amount by which to dim the lines scanned in the previous moment,

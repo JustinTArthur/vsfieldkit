@@ -10,6 +10,8 @@ Changelog
   cropped by factors smaller than interlaced subsampling.
 * :py:func:`vsfieldkit.fill_analog_frame_ends` more compatible with code
   autocompletion via removal of decorators.
+* :py:func:`vsfieldkit.scan_interlaced` can brighten newly-scanned fields via
+  new ``attack_factor`` argument.
 
 1.0.2
 -----

@@ -188,6 +188,9 @@ dimming lines that were scanned onto in the previous moment.
         Attribution-NonCommercial-ShareAlike 3.0 Unported License
         <http://creativecommons.org/licenses/by-nc-sa/3.0/>`_
 
+Additionally, the ``attack_factor`` parameter can be used to brighten
+newly-scanned lines.
+
 .. warning::
     It's not recommended to add decay unless you know what the playback
     device's refresh rate will be ahead of time. If the final video's framerate
