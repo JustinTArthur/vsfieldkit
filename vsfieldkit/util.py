@@ -1,7 +1,7 @@
-from functools import wraps
 from typing import Callable, Iterator, Optional, Tuple, Union
 
-from vapoursynth import ColorFamily, FieldBased, VideoFormat, VideoNode, core
+from vapoursynth import (ColorFamily, Error, FieldBased, VideoFormat,
+                         VideoNode, core)
 
 from vsfieldkit.types import FormatSpecifier
 
@@ -193,44 +193,27 @@ def format_from_specifier(specifier: FormatSpecifier) -> VideoFormat:
     return core.get_video_format(specifier)
 
 
-def requires_plugins(
+def require_plugins(
     *plugins: Tuple[str, str]
 ):
-    def decorator(original_func):
-
-        @wraps(original_func)
-        def wrapped_func(*args, **kwargs):
-            missing = []
-            for plugin_namespace, plugin_name in plugins:
-                if not hasattr(core, plugin_namespace):
-                    missing.append(f'{plugin_namespace} ({plugin_name})')
-            if missing:
-                raise Exception(f'Missing required plugin(s): '
-                                f'{",".join(missing)}')
-            return original_func(*args, **kwargs)
-
-        return wrapped_func
-
-    return decorator
+    missing = []
+    for plugin_namespace, plugin_name in plugins:
+        if not hasattr(core, plugin_namespace):
+            missing.append(f'{plugin_namespace} ({plugin_name})')
+    if missing:
+        raise Error(f'Missing required plugin(s): {",".join(missing)}')
 
 
-def requires_one_of(
+def require_one_of(
     *plugins: Tuple[str, str]
 ):
-    def decorator(original_func):
-        @wraps(original_func)
-        def wrapped_func(*args, **kwargs):
-            missing = []
-            for plugin_namespace, plugin_name in plugins:
-                if hasattr(core, plugin_namespace):
-                    break
-                else:
-                    missing.append(f'{plugin_namespace} ({plugin_name})')
-            else:
-                raise Exception(f'Requires any one of these plugins: '
-                                f'{",".join(missing)}')
-            return original_func(*args, **kwargs)
-
-        return wrapped_func
-
-    return decorator
+    missing = []
+    for plugin_namespace, plugin_name in plugins:
+        if hasattr(core, plugin_namespace):
+            break
+        else:
+            missing.append(f'{plugin_namespace} ({plugin_name})')
+    else:
+        raise Error(
+            f'Requires any one of these plugins: {",".join(missing)}'
+        )

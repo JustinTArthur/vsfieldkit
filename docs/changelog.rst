@@ -8,6 +8,8 @@ Changelog
   ``"fixborders"`` in order to work with the release version of fillborders.
 * :py:func:`vsfieldkit.fill_analog_frame_ends` works with progressive clips
   cropped by factors smaller than interlaced subsampling.
+* :py:func:`vsfieldkit.fill_analog_frame_ends` more compatible with code
+  autocompletion via removal of decorators.
 
 1.0.2
 -----
