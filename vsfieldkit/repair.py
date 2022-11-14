@@ -5,15 +5,13 @@ from typing import Callable, Optional, Sequence, Tuple, Union
 from vapoursynth import ColorFamily, Error, FieldBased, VideoNode, core
 
 from vsfieldkit.types import FormatSpecifier
-from vsfieldkit.util import (format_from_specifier, requires_one_of,
-                             requires_plugins)
+from vsfieldkit.util import (format_from_specifier, require_one_of,
+                             require_plugins)
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
 FULL_ANALOG_DISPLAY_LINES = frozenset((486, 576))
 
 
-@requires_plugins(('fb', 'fillborders'))
-@requires_one_of(('cf', 'ContinuityFixer'), ('edgefixer', 'EdgeFixer'))
 def fill_analog_frame_ends(
     clip: VideoNode,
     top_blank_width: Optional[int] = None,
@@ -31,6 +29,9 @@ def fill_analog_frame_ends(
     These lines are often half-blanked so that the CRT electron beam won't
     light up phosphors as it zig-zags from the bottom of screen to the top to
     start painting the next frame."""
+    require_plugins(('fb', 'fillborders'))
+    require_one_of(('cf', 'ContinuityFixer'), ('edgefixer', 'EdgeFixer'))
+
     if top_blank_width is None:
         top_blank_width = ceil(clip.width * 0.65)
     if bottom_blank_width is None:
