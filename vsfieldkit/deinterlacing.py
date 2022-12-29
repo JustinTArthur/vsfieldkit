@@ -79,13 +79,17 @@ def bob(
 def resample_as_progressive(
     clip: VideoNode,
     kernel: Callable = core.resize.Spline36,
+    upsampling_kernel: Callable = core.resize.Point,
     dither_type: str = 'random'
 ) -> VideoNode:
     """When every frame of the clip represents progressive content (no
     combing) this will take any frames encoded interlaced and resample them so
     that they are progressive in both content AND format.
     """
-    upsampled = upsample_as_progressive(clip)
+    upsampled = upsample_as_progressive(
+        clip,
+        kernel=upsampling_kernel
+    )
     resampled = convert_format_if_needed(
         upsampled,
         format=clip.format,
@@ -95,7 +99,7 @@ def resample_as_progressive(
     return resampled
 
 
-def upsample_as_progressive(clip: VideoNode):
+def upsample_as_progressive(clip: VideoNode, kernel=core.resize.Point):
     """Returns a clip now marked as progressive and with any vertical
     chroma subsampling removed so that previously-alternating chroma lines
     will be laid out in the correct one-line-after-another order for
@@ -103,7 +107,7 @@ def upsample_as_progressive(clip: VideoNode):
     upsampled = convert_format_if_needed(
         clip,
         subsampling_h=0,
-        kernel=core.resize.Point,
+        kernel=kernel,
         dither_type='none'
     )
     as_progressive = upsampled.std.SetFieldBased(FieldBased.FIELD_PROGRESSIVE)

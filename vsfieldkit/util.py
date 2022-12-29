@@ -1,7 +1,9 @@
-from typing import Callable, Iterator, Optional, Tuple, Union
+import sys
+from functools import wraps
+from typing import Callable, Iterator, Optional, Tuple, Union, Sequence
 
 from vapoursynth import (ColorFamily, ColorRange, Error, FieldBased,
-                         VideoFormat, VideoNode, core)
+                         VideoFormat, VideoNode, core, VideoFrame)
 
 from vsfieldkit.types import Factor, FormatSpecifier
 
@@ -12,6 +14,8 @@ FORMAT_INTRINSICS = (
     'subsampling_h',
     'bits_per_sample'
 )
+
+y_point_resize = core.resize.Point
 
 
 def assume_bff(clip: VideoNode) -> VideoNode:
@@ -247,3 +251,12 @@ def require_one_of(
         raise Error(
             f'Requires any one of these plugins: {",".join(missing)}'
         )
+
+
+@wraps(y_point_resize)
+def spline36_cb_cr_only(*resize_args, **resize_kwargs):
+    return y_point_resize(
+        *resize_args,
+        **resize_kwargs,
+        resample_filter_uv='spline36'
+    )

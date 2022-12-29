@@ -1,11 +1,11 @@
 from fractions import Fraction
 from itertools import cycle, islice
 from math import ceil, floor
-from typing import Optional, Sequence, Callable
+from typing import Callable, Optional, Sequence
 
-from vapoursynth import core, VideoNode, VideoFrame
+from vapoursynth import VideoFrame, VideoNode, core
 
-from vsfieldkit.util import convert_format_if_needed
+from vsfieldkit.util import convert_format_if_needed, spline36_cb_cr_only
 
 
 def interlace(
@@ -16,7 +16,9 @@ def interlace(
     fpsnum: Optional[int] = None,
     fpsden: Optional[int] = 1,
     interlace_progressive_chroma: bool = True,
-    subsampling_kernel: Callable = core.resize.Spline36
+    subsampling_kernel: Callable = spline36_cb_cr_only,
+    upsampling_kernel: Callable = spline36_cb_cr_only,
+    dither_type: str = 'random'
 ) -> VideoNode:
     """
     Spreads the clip's frames across interlaced fields to produce an interlaced
@@ -25,7 +27,8 @@ def interlace(
     upsampled = convert_format_if_needed(
         clip,
         subsampling_h=0,
-        kernel=core.resize.Point
+        kernel=upsampling_kernel,
+        dither_type=dither_type
     )
     as_fields = upsampled.std.SeparateFields(tff=tff)
 
@@ -50,7 +53,8 @@ def interlace(
         interlaced = convert_format_if_needed(
             interlaced,
             format=clip.format,
-            kernel=subsampling_kernel
+            kernel=subsampling_kernel,
+            dither_type=dither_type
         )
         if not interlace_progressive_chroma:
             # Restore original progressive frames but with interlaced metadata
