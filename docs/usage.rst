@@ -257,6 +257,10 @@ Deinterlacing
         resampled = fixed_edges.resize.Spline36(format=clip.format)
         resampled.set_output()
 
+Interlacing
+^^^^^^^^^^^
+.. autofunction:: vsfieldkit.weave_fields(clip) -> VideoNode
+
 Repair
 ^^^^^^
 .. function:: vsfieldkit.fill_analog_frame_ends( \

@@ -1,9 +1,9 @@
-import sys
 from math import ceil
 from typing import Callable, Optional, Sequence, Tuple, Union
 
 from vapoursynth import ColorFamily, Error, FieldBased, VideoNode, core
 
+from vsfieldkit.interlacing import weave_fields
 from vsfieldkit.types import FormatSpecifier
 from vsfieldkit.util import (format_from_specifier, require_one_of,
                              require_plugins)
@@ -130,7 +130,7 @@ def fill_analog_frame_ends(
             clip_src=tuple(replacement_by_position.values())
         )
         # Re-interlace fields
-        interlaced_repaired = repaired_fields.std.DoubleWeave()[::2]
+        interlaced_repaired = weave_fields(repaired_fields)
         # Copy original properties in case we overwrote field-related flags
         interlaced_repaired = interlaced_repaired.std.CopyFrameProps(clip)
     else:

@@ -81,6 +81,15 @@ def telecine(
     return interlaced
 
 
+def weave_fields(
+    clip: VideoNode
+) -> VideoNode:
+    """Creates an interlaced clip from an interleaved field frames clip, such
+    as one created with core.std.SeparateFields()
+    """
+    return clip.std.DoubleWeave()[::2]
+
+
 def _pulldown_pattern_to_field_offsets(
     pattern: Sequence[int]
 ) -> Sequence[int]:
@@ -128,7 +137,7 @@ def _telecine_by_pattern(
         cycle=orig_cycle_size * 2,
         offsets=offsets_pattern
     )
-    interlaced = pulled_down_fields.std.DoubleWeave()[::2]
+    interlaced = weave_fields(pulled_down_fields)
 
     # Resample our upsampled fields if required:
     if pre_subsample_fields:
@@ -220,7 +229,7 @@ def _telecine_by_time(
         clips=(new_fields,)
     )
 
-    interlaced = new_fields.std.DoubleWeave()[::2]
+    interlaced = weave_fields(new_fields)
     interlaced = convert_format_if_needed(
         interlaced,
         format=clip.format,
