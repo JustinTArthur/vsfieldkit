@@ -1,5 +1,13 @@
 Changelog
 =========
+Next Release
+------------
+* Interlacing! Targeting deinterlacer testing and engineers in the broadcast
+  space who've been instructed to avoid soft telecine. Two new functions:
+
+  * :py:func:`vsfieldkit.telecine`
+  * :py:func:`vsfieldkit.weave_fields`
+
 1.1.0
 -----
 * :py:func:`vsfieldkit.fill_analog_frame_ends` allows overriding the pre-fill

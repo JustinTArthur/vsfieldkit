@@ -259,6 +259,97 @@ Deinterlacing
 
 Interlacing
 ^^^^^^^^^^^
+.. function:: vsfieldkit.telecine( \
+            clip, \
+            *, \
+            tff, \
+            pulldown_pattern=None, \
+            fpsnum=None, \
+            fpsden=1, \
+            interlace_progressive_chroma=True, \
+            pre_subsample_fields=False, \
+            subsampling_kernel=spline36_cb_cr_only, \
+            upsampling_kernel=spline36_cb_cr_only, \
+            dither_type='random' \
+        ) -> VideoNode
+
+        Interlaces the given progressive clip by spreading its content over 
+        interlaced fields according to a given interlaced frame rate or a given
+        pull-down pattern.
+
+        The word "telecine" is more recently ascribed to the process of
+        scanning physical film media to digital video. However, this
+        function does not perform such a task and does not interact with any
+        sort of physical telecine machinery or color suites. This is a virtual
+        analog of what analog telecine machinery would accomplish when scanning
+        physical film media to interlaced analog video signal such as NTSC or
+        PAL.
+
+        :param VideoNode clip:
+            Progressive video to be interlaced. Must have an even height.
+
+        :param bool tff:
+            Whether the top field is the first field from the frame to be
+            displayed during interlaced-aware playback. If False, the bottom
+            field is first.
+
+        :param str pulldown_pattern:
+            A string of numbers seperated by colons, where each number
+            indicates for how many field duration  to include each frame from
+            the original clip in the new interlaced clip. A field duration is
+            half the interlaced frame duration.
+
+            For example, the popular "2:3" pattern will include the first
+            original progressive frame for 2 field durations in the new
+            interlaced clip. It will then include parts of the second original
+            frame for 3 field durations. The pattern repeats so the third
+            original frame is included for 2 field durations of the new clip
+            and so-on.
+
+            Either pulldown_pattern or fpsnum must be supplied
+
+        :param int fpsnum:
+            The numerator of the speed of the new interlaced clip in
+            frames-per-second. When supplied, the original progressive frames
+            will be pulled down or up to stretch across interlaced fields so
+            that parts of the original frame would be displayed at the same
+            time they occurred in the original clip.
+
+            A denominator can be supplied in the corresponding ``fpsden``
+            argument.
+
+            This allows flexibility of input and output frame rates and will
+            consistently produce the lowest-judder interlaced representation
+            of the original clip. For example, when going from 24000/1001
+            progressive FPS to ``fpsnum=30_000`` and ``fpsden=1_001``, the
+            footage will appropriately end up in the popular the 2:3 pulldown
+            pattern (though may not start at the "2" in the cycle). Note that
+            this virtual time-based telecine will drop original content if
+            needed to meet the new time base.
+
+        :param int fpsden:
+            The denominator to use with a supplied ``fpsnum`` (numerator) for
+            virtual time-based telecine. If not supplied, this defaults to
+            ``1``.
+
+        :param bool interlace_progressive_chroma:
+            If ``False``, when both fields of an interlaced frame would come
+            from the same original progressive frame, simply use that
+            progressive frame and call it interlaced (fake interlacing). This
+            results in material with vertical chroma subsampling remaining
+            unbroken and unblurred if a downstream deinterlacer or display
+            upsampler treats the clean frames as progressive.
+
+            Defaults to ``True``.
+
+        :param bool pre_subsample_fields:
+            Crushes chroma to half its original resolution prior to upsampling
+            for interlacing. This can be a way to produce output that is
+            displayed consistently accross a variety of deinterlacers and
+            display upsamplers that might otherwise be susceptible to artifacts
+            from chroma upsampling error (CUE) or interlaced chroma problem
+            (ICP).
+
 .. autofunction:: vsfieldkit.weave_fields(clip) -> VideoNode
 
 Repair
