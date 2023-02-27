@@ -1,9 +1,9 @@
-import sys
-from functools import wraps
-from typing import Callable, Iterator, Optional, Tuple, Union, Sequence
+from functools import partial
+from typing import (Callable, Iterator, Mapping, Optional, Sequence, Tuple,
+                    Union)
 
 from vapoursynth import (ColorFamily, ColorRange, Error, FieldBased,
-                         VideoFormat, VideoNode, core, VideoFrame)
+                         VideoFormat, VideoFrame, VideoNode, core)
 
 from vsfieldkit.types import Factor, FormatSpecifier
 
@@ -15,7 +15,11 @@ FORMAT_INTRINSICS = (
     'bits_per_sample'
 )
 
-y_point_resize = core.resize.Point
+VERTICAL_CENTER_CHROMA_LOCS = {
+    None: 2,  # assume left, resample as topleft
+    0: 2,     # left, resample as topleft
+    1: 3      # center, resample as top
+}
 
 
 def assume_bff(clip: VideoNode) -> VideoNode:
@@ -253,10 +257,115 @@ def require_one_of(
         )
 
 
-@wraps(y_point_resize)
-def spline36_cb_cr_only(*resize_args, **resize_kwargs):
-    return y_point_resize(
-        *resize_args,
-        **resize_kwargs,
-        resample_filter_uv='spline36'
+def shift_chroma_to_luma_sited(
+    clip: VideoNode,
+    tff: bool,
+    shift_kernel: Callable,
+) -> VideoNode:
+    """Takes a clip marked as having vertically centered chroma and
+    assumes that the chroma samples are centered BETWEEN luma samples
+    from a prior subsampled state. Establishes new chroma samples that
+    resemble the same content but relative from the luma sample
+    locations. The _ChromaLocation property will be corrected to
+    one that makes more sense (e.g. topleft instead of left).
+    """
+    if clip.format.color_family != ColorFamily.YUV:
+        return clip
+
+    def shift_centered_chroma(
+        n: int,
+        f: VideoFrame,
+        plane_fields: VideoNode,
+        field_shifts: Mapping[Optional[int], VideoNode]
+    ):
+        props = f.props
+        if props.get('_ChromaLocation') in VERTICAL_CENTER_CHROMA_LOCS:
+            return field_shifts[props.get('_Field')]
+        else:
+            # Assume was already vertically co-sited
+            return plane_fields
+
+    y, cb, cr = clip.std.SplitPlanes()
+    shifted_planes = [y]
+    for plane in cb, cr:
+        plane_fields = plane.std.SeparateFields(tff=tff)
+        shifted_as_top = shift_kernel(plane_fields, src_top=-1 / 4)
+        shifted_as_bottom = shift_kernel(plane_fields, src_top=1 / 4)
+        field_shifts = {
+            None: shifted_as_top if tff else shifted_as_bottom,
+            0: shifted_as_bottom,
+            1: shifted_as_top
+        }
+
+        shifted_plane_fields = plane_fields.std.FrameEval(
+            eval=partial(
+                shift_centered_chroma,
+                plane_fields=plane_fields,
+                field_shifts=field_shifts
+            ),
+            prop_src=(plane_fields,),
+            clip_src=(plane_fields, shifted_as_top, shifted_as_bottom)
+        )
+        shifted_planes.append(
+            shifted_plane_fields.std.DoubleWeave()[::2]
+        )
+    shifted = core.std.ShufflePlanes(
+        clips=shifted_planes,
+        planes=(0, 0, 0),
+        colorfamily=ColorFamily.YUV
+    )
+
+    def revise_frame_props(n: int, f: VideoFrame):
+        props = f.props
+        corrected_f = f.copy()
+        if '_ChromaLocation' in props:
+            corrected_f.props['_ChromaLocation'] = (
+                VERTICAL_CENTER_CHROMA_LOCS.get(
+                    props['_ChromaLocation'],
+                    props['_ChromaLocation']
+                )
+            )
+            return corrected_f
+        return f
+
+    shifted = shifted.std.ModifyFrame(
+        clips=(shifted,),
+        selector=revise_frame_props
+    )
+
+    return shifted
+
+
+def annotate_bobbed_fields(
+    clip: VideoNode,
+    original_clip: VideoNode,
+    prop: str = 'OriginalField',
+    tff: Optional[bool] = None
+) -> VideoNode:
+    """Adds a property to frames of a bobbed clip to indicate what
+    original field position was used to derive the new frame."""
+    assert len(clip) == len(original_clip) * 2
+
+    def annotate_frame(n: int, f: Sequence[VideoFrame]):
+        bobbed_frame, original_frame = f
+        field_based = original_frame.props.get('_FieldBased')
+        if field_based == FieldBased.FIELD_TOP:
+            tff_int = 1
+        elif field_based == FieldBased.FIELD_BOTTOM:
+            tff_int = 0
+        elif tff is None:
+            raise Error(
+                'Could not determine field order and tff argument not '
+                'supplied.'
+            )
+        else:
+            tff_int = int(tff)
+
+        annotated_frame = bobbed_frame.copy()
+        annotated_frame.props[prop] = (n & 1) ^ tff_int
+        return annotated_frame
+
+    return clip.std.ModifyFrame(
+        clips=(clip, double(original_clip)),
+        selector=annotate_frame
     )

@@ -5,8 +5,9 @@ from vsfieldkit.repair import fill_analog_frame_ends
 from vsfieldkit.scanning import scan_interlaced
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor, FormatSpecifier,
                               InterlacedScanPostProcessor)
-from vsfieldkit.util import (assume_bff, assume_progressive, assume_tff,
-                             double, group_by_combed, group_by_field_order)
+from vsfieldkit.util import (annotate_bobbed_fields, assume_bff,
+                             assume_progressive, assume_tff, double,
+                             group_by_combed, group_by_field_order)
 
 VERSION = 1, 1, 0
 

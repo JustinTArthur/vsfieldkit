@@ -1,12 +1,20 @@
 Changelog
 =========
-Next Release
-------------
-* Interlacing! Targeting deinterlacer testing and engineers in the broadcast
+2.0.0-upcoming
+--------------
+* Interlacing! Targeting deinterlacer testers and engineers in the broadcast
   space who've been instructed to avoid soft telecine. Two new functions:
 
   * :py:func:`vsfieldkit.telecine`
   * :py:func:`vsfieldkit.weave_fields`
+
+* [Re]sampling kernels to supplement the out of the box vapoursynth.resize
+  functions, but specialized for vsfieldkit tasks. They can be found in the
+  :py:mod:`vsfieldkit.kernels` module. Includes an nnedi3 kernel-maker for use
+  as a chroma upsampler.
+
+* :py:func:`vsfieldkit.annotate_bobbed_fields` for retro-actively adding a
+  property to bobbed frames noting the field (top or bottom) they came from.
 
 1.1.0
 -----

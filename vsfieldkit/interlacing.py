@@ -5,7 +5,8 @@ from typing import Callable, Optional, Sequence
 
 from vapoursynth import VideoFrame, VideoNode, core
 
-from vsfieldkit.util import convert_format_if_needed, spline36_cb_cr_only
+from vsfieldkit.kernels import resample_chroma_with_spline36
+from vsfieldkit.util import convert_format_if_needed
 
 
 def telecine(
@@ -17,8 +18,8 @@ def telecine(
     fpsden: Optional[int] = 1,
     interlace_progressive_chroma: bool = True,
     pre_subsample_fields: bool = False,
-    subsampling_kernel: Callable = spline36_cb_cr_only,
-    upsampling_kernel: Callable = spline36_cb_cr_only,
+    subsampling_kernel: Callable = resample_chroma_with_spline36,
+    upsampling_kernel: Callable = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ) -> VideoNode:
     """Spreads the clip's frames across interlaced fields to produce an
