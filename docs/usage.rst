@@ -42,10 +42,9 @@ Reinterpreting
 
 .. autofunction:: vsfieldkit.assume_progressive(clip) -> VideoNode
 
-    For progressive content that has been interlaced and has vertical
-    chroma subsampling, :py:func:`vsfieldkit.resample_as_progressive` or
-    :py:func:`vsfieldkit.upsample_as_progressive` could be considered as
-    well.
+    For progressive content that has been interlaced and has vertical chroma
+    subsampling, :py:func:`vsfieldkit.resample_as_progressive` or
+    :py:func:`vsfieldkit.upsample_as_progressive` could be considered as well.
 
 .. autofunction:: vsfieldkit.assume_tff(clip) -> VideoNode
 
@@ -89,26 +88,27 @@ Deinterlacing
 
 .. function:: vsfieldkit.resample_as_progressive( \
         clip, \
-        kernel=core.resize.Spline36, \
+        subsampling_kernel=resample_chroma_with_spline36, \
+        upsampling_kernel=resample_chroma_with_spline36, \
         dither_type='random' \
     ) -> VideoNode
 
-    This should be used instead of :py:func:`vsfieldkit.assume_progressive`
+    This can be used instead of :py:func:`vsfieldkit.assume_progressive`
     when progressive content has been encoded interlaced with vertical chroma
     subsampling.
 
     The primary use-case for this is removing 2:2 pulldown on 25p content
     that's been hard-telecined to 50i in DV, DVB, or DVD formats with 4:2:0
     chroma subsampling. It can also be used to resample chroma on frames
-    created with manual field matching that pulled up other pulldown patterns.
+    created with field-matching that pulled up other pulldown patterns.
 
     When progressive content is encoded as interlaced pictures with 4:2:0
     chroma subsampling, the chroma samples span alternating instead of adjacent
-    lines. Simply marking/assuming such clips as progressive could result in
-    color samples being attributed to the wrong lines (bleeding), and in those
-    cases this function can be used instead. It will prevent bleeding, though
-    as this comes up with new samples for the progressive content, it can
-    result in some loss of original color precision.
+    lines of a frame. Simply marking/assuming such clips as progressive could
+    result in color samples being attributed to the wrong lines (bleeding), and
+    in those cases this function can be used instead. It will prevent bleeding,
+    though as this comes up with new samples for the progressive content, it
+    results in loss of original color precision.
 
     If you wish to perform additional processing before the final chroma
     subsampling is restored, use :py:func:`vsfieldkit.upsample_as_progressive`
@@ -117,10 +117,21 @@ Deinterlacing
     :param VideoNode clip: Video with progressive frames encoded as interlaced
         with vertical subsampling.
 
-    :param typing.Callable kernel:
-        Resizing/resampling function from vapoursynth.core.resize to use to
-        stretch the fields to the target frame height. Defaults to
-        :py:func:`resize.Spline36`.
+    :param typing.Callable subsampling_kernel:
+        Resampling/resizing function to use to restore deinterlaced chroma to =
+        the original chroma height. Defaults to
+        :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
+
+    :param typing.Callable upsampling_kernel:
+        Resampling/resizing function to use for upsampling sub-sampled
+        chroma. Must be interlacing-aware like most of VapourSynth's
+        built in :doc:`functions/video/resize` functions. Defaults to
+        :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
+
+        If the nnedi3 VapourSynth plugin is present,
+        :py:func:`vsfieldkit.kernels.prepare_nnedi3_chroma_upsampler`
+        can be used to create a suitable upsampling kernel employing
+        the nnedi3 model.
 
     :param str dither_type:
         If video is processed at a higher bit depth internally before being
@@ -258,6 +269,17 @@ Deinterlacing
         resampled = fixed_edges.resize.Spline36(format=clip.format)
         resampled.set_output()
 
+    :param typing.Callable kernel:
+        Resampling/resizing function to use for upsampling sub-sampled
+        chroma. Must be interlacing-aware like most of VapourSynth's
+        built in :doc:`functions/video/resize` functions. Defaults to
+        :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
+
+        If the nnedi3 VapourSynth plugin is present,
+        :py:func:`vsfieldkit.kernels.prepare_nnedi3_chroma_upsampler`
+        can be used to create a suitable upsampling kernel employing
+        the nnedi3 model.
+
 Interlacing
 ^^^^^^^^^^^
 .. function:: vsfieldkit.telecine( \
@@ -277,14 +299,6 @@ Interlacing
     Interlaces the given progressive clip by spreading its content over 
     interlaced fields according to a given interlaced frame rate or a given
     pull-down pattern.
-    
-    The word "telecine" is more recently ascribed to the process of
-    scanning physical film media to digital video. However, this
-    function does not perform such a task and does not interact with any
-    sort of physical telecine machinery or color suites. This is a virtual
-    analog of what analog telecine machinery would accomplish when scanning
-    physical film media to interlaced analog video signal such as NTSC or
-    PAL.
     
     :param VideoNode clip:
         Progressive video to be interlaced. Must have an even height.
@@ -350,6 +364,14 @@ Interlacing
         display upsamplers that might otherwise be susceptible to artifacts
         from chroma upsampling error (CUE) or interlaced chroma problem
         (ICP).
+
+    .. note::
+        The word *telecine* is often ascribed to the process of scanning
+        physical film media to digital video. This function does not interact
+        with physical telecine systems or color suites. It is instead a
+        virtual equivalent of what telecine machinery would accomplish when
+        scanning physical film media to an interlaced video signal such as NTSC
+        or PAL.
 
 .. autofunction:: vsfieldkit.weave_fields(clip) -> VideoNode
 

@@ -2,6 +2,8 @@ Changelog
 =========
 2.0.0-upcoming
 --------------
+New Features
+^^^^^^^^^^^^
 * Interlacing! Targeting deinterlacer testers and engineers in the broadcast
   space who've been instructed to avoid soft telecine. Two new functions:
 
@@ -15,6 +17,16 @@ Changelog
 
 * :py:func:`vsfieldkit.annotate_bobbed_fields` for retro-actively adding a
   property to bobbed frames noting the field (top or bottom) they came from.
+
+Changed APIs
+^^^^^^^^^^^^
+
+* :py:func:`vsfieldkit.resample_as_progressive` ``kernel`` argument renamed
+  to ``subsampling_kernel`` for clarity. ``upsampling_kernel`` argument added.
+* :py:func:`vsfieldkit.resample_as_progressive` and
+  :py:func:`vsfieldkit.upsample_as_progressive` now default to Spline 36 for
+  any chroma subsampling or upsampling using the new 
+  :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36` .
 
 1.1.0
 -----

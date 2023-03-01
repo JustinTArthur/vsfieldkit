@@ -3,6 +3,7 @@ from warnings import warn
 
 from vapoursynth import FieldBased, VideoNode, core
 
+from vsfieldkit.kernels import resample_chroma_with_spline36
 from vsfieldkit.util import convert_format_if_needed
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
@@ -78,8 +79,8 @@ def bob(
 
 def resample_as_progressive(
     clip: VideoNode,
-    kernel: Callable = core.resize.Spline36,
-    upsampling_kernel: Callable = core.resize.Point,
+    subsampling_kernel: Callable = resample_chroma_with_spline36,
+    upsampling_kernel: Callable = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ) -> VideoNode:
     """When every frame of the clip represents progressive content (no
@@ -93,13 +94,17 @@ def resample_as_progressive(
     resampled = convert_format_if_needed(
         upsampled,
         format=clip.format,
-        kernel=kernel,
+        kernel=subsampling_kernel,
         dither_type=dither_type
     )
     return resampled
 
 
-def upsample_as_progressive(clip: VideoNode, kernel=core.resize.Point):
+def upsample_as_progressive(
+    clip: VideoNode,
+    kernel: Callable = resample_chroma_with_spline36,
+    dither_type: str = 'random'
+):
     """Returns a clip now marked as progressive and with any vertical
     chroma subsampling removed so that previously-alternating chroma lines
     will be laid out in the correct one-line-after-another order for
@@ -108,7 +113,7 @@ def upsample_as_progressive(clip: VideoNode, kernel=core.resize.Point):
         clip,
         subsampling_h=0,
         kernel=kernel,
-        dither_type='none'
+        dither_type=dither_type
     )
     as_progressive = upsampled.std.SetFieldBased(FieldBased.FIELD_PROGRESSIVE)
     return as_progressive
