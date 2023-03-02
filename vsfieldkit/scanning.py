@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from vapoursynth import ColorFamily, SampleType, VideoNode, core
 
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor,
-                              InterlacedScanPostProcessor)
+                              InterlacedScanPostProcessor, Resizer)
 from vsfieldkit.util import (assume_progressive, black_clip_from_clip,
                              brighten, convert_format_if_needed)
 
@@ -23,7 +23,7 @@ def scan_interlaced(
     decay_base: Optional[VideoNode] = None,
     decay_factor: Optional[Factor] = None,
     post_processing: Sequence[InterlacedScanPostProcessor] = (),
-    post_processing_blend_kernel: Callable = core.resize.Spline36,
+    post_processing_blend_kernel: Resizer = core.resize.Spline36,
 ) -> VideoNode:
     """
     Returns a new clip where interlaced fields from the original clip are
@@ -340,7 +340,7 @@ def _brighten_fresh_fields(
     return edited_ordered
 
 
-def _blend_vertically(clip: VideoNode, kernel: Callable) -> VideoNode:
+def _blend_vertically(clip: VideoNode, kernel: Resizer) -> VideoNode:
     """Instead of typical Bob deinterlacing that takes advantage of temporal
     changes in a field, this deinterlacer simply plays back the interlaced
     fields at their original field rate in their correct position, but blends

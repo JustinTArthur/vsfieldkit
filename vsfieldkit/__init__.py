@@ -4,7 +4,8 @@ from vsfieldkit.interlacing import telecine, weave_fields
 from vsfieldkit.repair import fill_analog_frame_ends
 from vsfieldkit.scanning import scan_interlaced
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor, FormatSpecifier,
-                              InterlacedScanPostProcessor)
+                              InterlacedScanPostProcessor, PulldownPattern,
+                              Resizer)
 from vsfieldkit.util import (annotate_bobbed_fields, assume_bff,
                              assume_progressive, assume_tff, double,
                              group_by_combed, group_by_field_order)
@@ -16,3 +17,8 @@ SCAN_LATEST = ChromaSubsampleScanning.SCAN_LATEST
 SCAN_UPSAMPLED = ChromaSubsampleScanning.SCAN_UPSAMPLED
 
 BLEND_VERTICALLY = InterlacedScanPostProcessor.BLEND_VERTICALLY
+
+ADVANCED_PULLDOWN = PulldownPattern.ADVANCED_PULLDOWN
+EURO_PULLDOWN = PulldownPattern.EURO_PULLDOWN
+MATCHED_PULLDOWN = PulldownPattern.MATCHED_PULLDOWN
+NTSC_FILM_PULLDOWN = PulldownPattern.NTSC_FILM_PULLDOWN

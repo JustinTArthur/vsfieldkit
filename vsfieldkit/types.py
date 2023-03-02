@@ -1,9 +1,17 @@
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
-from typing import Union
+from typing import Callable, Union
 
 from vapoursynth import PresetFormat, VideoFormat, VideoNode
+
+Factor = Union[int, float, Decimal, Fraction]
+
+FormatSpecifier = Union[PresetFormat, VideoFormat, VideoNode, int]
+
+Resizer = Callable[..., VideoNode]
+"""A function following the same signature as VapourSynth's built in
+resize/resample kernels."""
 
 
 class ChromaSubsampleScanning(Enum):
@@ -31,6 +39,19 @@ class InterlacedScanPostProcessor(Enum):
     effectively lose close to half of the vertical detail as a side effect."""
 
 
-Factor = Union[int, float, Decimal, Fraction]
+class PulldownPattern(Enum):
+    """Commonly found pulldown pattern."""
 
-FormatSpecifier = Union[PresetFormat, VideoFormat, VideoNode, int]
+    ADVANCED_PULLDOWN = '2:3:3:2'
+    """For 24000/1001p to 60000/1001i where no field-matching is needed
+    in IVTC because the only "dirty" frames can be decimated."""
+
+    EURO_PULLDOWN = '2:2:2:2:2:2:2:2:2:2:2:3'
+    """For 24p to 50i with no speed-up or speed-down required."""
+
+    MATCHED_PULLDOWN = '2'
+    """Each progressive frame is laid out on an interlaced frames."""
+
+    NTSC_FILM_PULLDOWN = '2:3:2:3'
+    """For 24000/1001p to 60000/1001i with the least amount of judder.
+    """

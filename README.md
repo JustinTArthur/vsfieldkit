@@ -4,6 +4,7 @@ Collection of functions for working with interlaced content in
 external dependencies.
 
 Included functions:  
+`vsfieldkit.annotate_bobbed_fields(clip, original_clip)`  
 `vsfieldkit.assume_bff(clip)`  
 `vsfieldkit.assume_progressive(clip)`  
 `vsfieldkit.assume_tff(clip)`  
@@ -15,6 +16,7 @@ Included functions:
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.resample_as_progressive(clip)`  
 `vsfieldkit.scan_interlaced(clip)`  
+`vsfieldkit.telecine(clip)`
 `vsfieldkit.upsample_as_progressive(clip)`
 
 See [the documentation](https://vsfieldkit.justinarthur.com/) for more information.

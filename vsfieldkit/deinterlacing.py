@@ -1,9 +1,10 @@
-from typing import Callable, Optional
+from typing import Optional
 from warnings import warn
 
 from vapoursynth import FieldBased, VideoNode, core
 
 from vsfieldkit.kernels import resample_chroma_with_spline36
+from vsfieldkit.types import Resizer
 from vsfieldkit.util import convert_format_if_needed
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
@@ -13,7 +14,7 @@ def bob(
     shift: bool = True,
     tff: Optional[bool] = None,
     keep_field_property: bool = True,
-    kernel: Callable = core.resize.Spline36,
+    kernel: Resizer = core.resize.Spline36,
     dither_type: str = 'random'
 ) -> VideoNode:
     """Returns a clip of progressive frames, each consisting of a field from
@@ -79,8 +80,8 @@ def bob(
 
 def resample_as_progressive(
     clip: VideoNode,
-    subsampling_kernel: Callable = resample_chroma_with_spline36,
-    upsampling_kernel: Callable = resample_chroma_with_spline36,
+    subsampling_kernel: Resizer = resample_chroma_with_spline36,
+    upsampling_kernel: Resizer = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ) -> VideoNode:
     """When every frame of the clip represents progressive content (no
@@ -102,7 +103,7 @@ def resample_as_progressive(
 
 def upsample_as_progressive(
     clip: VideoNode,
-    kernel: Callable = resample_chroma_with_spline36,
+    kernel: Resizer = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ):
     """Returns a clip now marked as progressive and with any vertical

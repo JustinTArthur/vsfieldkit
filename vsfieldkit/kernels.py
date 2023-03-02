@@ -1,16 +1,17 @@
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 from vapoursynth import (ColorFamily, Error, PresetFormat, VideoFormat,
                          VideoNode, core)
 
-from vsfieldkit.util import (annotate_bobbed_fields, require_plugins,
-                             shift_chroma_to_luma_sited, format_from_specifier)
+from vsfieldkit.types import Resizer
+from vsfieldkit.util import (annotate_bobbed_fields, format_from_specifier,
+                             require_plugins, shift_chroma_to_luma_sited)
 
 resample_nearest_neighbor = core.resize.Point
 
 
 def prepare_nnedi3_chroma_upsampler(
-    shift_kernel: Callable = core.resize.Spline36,
+    shift_kernel: Resizer = core.resize.Spline36,
     nsize: Optional[int] = None,
     nns: Optional[int] = None,
     qual: Optional[int] = None,
@@ -21,7 +22,7 @@ def prepare_nnedi3_chroma_upsampler(
     int16_predictor: Optional[bool] = None,
     exp: Optional[int] = None,
     show_mask: Optional[bool] = None
-) -> Callable:
+) -> Resizer:
     """Creates a resampling function that uses the nnedi3 interpolation model
     originally made for deinterlacing to produce a clip without vertical chroma
     subsampling. The resampling function will use the given nnedi3 parameters.
@@ -104,7 +105,7 @@ def prepare_nnedi3_chroma_upsampler(
     return upsample_chroma_using_nnedi3
 
 
-def _prepare_chroma_only_resampler(resampler_name: str) -> Callable:
+def _prepare_chroma_only_resampler(resampler_name: str) -> Resizer:
     def chroma_only_resampler(*resize_args, **resize_kwargs) -> VideoNode:
         return resample_nearest_neighbor(
             *resize_args,

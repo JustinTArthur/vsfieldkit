@@ -1,11 +1,10 @@
 from functools import partial
-from typing import (Callable, Iterator, Mapping, Optional, Sequence, Tuple,
-                    Union)
+from typing import Iterator, Mapping, Optional, Sequence, Tuple, Union
 
 from vapoursynth import (ColorFamily, ColorRange, Error, FieldBased,
                          VideoFormat, VideoFrame, VideoNode, core)
 
-from vsfieldkit.types import Factor, FormatSpecifier
+from vsfieldkit.types import Factor, FormatSpecifier, Resizer
 
 FORMAT_INTRINSICS = (
     'color_family',
@@ -120,7 +119,7 @@ def group_by_field_order(
 
 def convert_format_if_needed(
     clip: VideoNode,
-    kernel: Callable = core.resize.Spline36,
+    kernel: Resizer = core.resize.Spline36,
     format: Optional[VideoFormat] = None,
     dither_type='random',
     **format_or_resize_specs,
@@ -260,7 +259,7 @@ def require_one_of(
 def shift_chroma_to_luma_sited(
     clip: VideoNode,
     tff: bool,
-    shift_kernel: Callable,
+    shift_kernel: Resizer,
 ) -> VideoNode:
     """Takes a clip marked as having vertically centered chroma and
     assumes that the chroma samples are centered BETWEEN luma samples

@@ -1,11 +1,12 @@
 from fractions import Fraction
 from itertools import cycle, islice
 from math import ceil, floor
-from typing import Callable, Optional, Sequence
+from typing import Optional, Sequence, Union
 
 from vapoursynth import VideoFrame, VideoNode, core
 
 from vsfieldkit.kernels import resample_chroma_with_spline36
+from vsfieldkit.types import PulldownPattern, Resizer
 from vsfieldkit.util import convert_format_if_needed
 
 
@@ -13,13 +14,13 @@ def telecine(
     clip: VideoNode,
     *,
     tff: bool,
-    pulldown_pattern: Optional[str] = None,
+    pulldown_pattern: Union[str, PulldownPattern, None] = None,
     fpsnum: Optional[int] = None,
     fpsden: Optional[int] = 1,
     interlace_progressive_chroma: bool = True,
     pre_subsample_fields: bool = False,
-    subsampling_kernel: Callable = resample_chroma_with_spline36,
-    upsampling_kernel: Callable = resample_chroma_with_spline36,
+    subsampling_kernel: Resizer = resample_chroma_with_spline36,
+    upsampling_kernel: Resizer = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ) -> VideoNode:
     """Spreads the clip's frames across interlaced fields to produce an
@@ -113,13 +114,15 @@ def _pulldown_pattern_to_field_offsets(
 def _telecine_by_pattern(
     clip: VideoNode,
     upsampled_clip: VideoNode,
-    pulldown_pattern: str,
+    pulldown_pattern: Union[str, PulldownPattern],
     pre_subsample_fields: bool,
-    subsampling_kernel: Callable,
+    subsampling_kernel: Resizer,
     dither_type: str,
     interlace_progressive_chroma: bool,
     tff: bool
 ) -> VideoNode:
+    if isinstance(pulldown_pattern, PulldownPattern):
+        pulldown_pattern = pulldown_pattern.value
     pattern_parts = [
         int(field_duration)
         for field_duration
@@ -198,7 +201,7 @@ def _telecine_by_time(
     tff: bool,
     interlace_progressive_chroma: bool,
     pre_subsample_fields: bool,
-    subsampling_kernel: Callable,
+    subsampling_kernel: Resizer,
     dither_type: str,
 ) -> VideoNode:
     original_length = len(clip)

@@ -32,7 +32,9 @@ Dependencies
 ^^^^^^^^^^^^
 For most functions, just VapourSynth. The
 :py:func:`~vsfieldkit.fill_analog_frame_ends` function requires the FillBorders
-and either the ContinuityFixer or EdgeFixer plugins.
+and either the ContinuityFixer or EdgeFixer plugins. Generating a resampling
+kernel with :py:func:`~vsfieldkit.kernels.prepare_nnedi3_chroma_upsampler`
+requires the nnedi3 plugin.
 
 Functions
 ---------
@@ -63,8 +65,8 @@ Deinterlacing
     built-in :py:func:`resize.Bob` that should be used instead as it provides
     near-identical functionality.
 
-    :param VideoNode clip: Video with interlaced frames to bob into
-        the resulting clip.
+    :param VideoNode clip: Video with interlaced frames to bob into the
+        resulting clip.
 
     :param bool shift: Whether to shift the lines during scaling to account for
         the field's position in a full frame. Recommended if the output is
@@ -75,8 +77,8 @@ Deinterlacing
         or clips without field order marking. ``True`` assumes top-field-first.
         ``False`` for bottom-field-first.
 
-    :param typing.Callable kernel:
-        Resizing/resampling function from vapoursynth.core.resize to use to
+    :param Resizer kernel:
+        Resampling/resizing function from vapoursynth.core.resize to use to
         stretch the fields to the target frame height. Defaults to
         :py:func:`resize.Spline36`.
 
@@ -117,12 +119,12 @@ Deinterlacing
     :param VideoNode clip: Video with progressive frames encoded as interlaced
         with vertical subsampling.
 
-    :param typing.Callable subsampling_kernel:
+    :param Resizer subsampling_kernel:
         Resampling/resizing function to use to restore deinterlaced chroma to =
         the original chroma height. Defaults to
         :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
 
-    :param typing.Callable upsampling_kernel:
+    :param Resizer upsampling_kernel:
         Resampling/resizing function to use for upsampling sub-sampled
         chroma. Must be interlacing-aware like most of VapourSynth's
         built in :doc:`functions/video/resize` functions. Defaults to
@@ -216,14 +218,16 @@ Deinterlacing
 
     :param Factor decay_factor:
         Amount by which to dim the lines scanned in the previous moment,
-        exposing the ``decay_base`` clip. Usually expressed as a
-        :py:class:`float`, :py:class:`~decimal.Decimal` or
-        :py:class:`~fractions.Fraction` where ``1`` means the previously-laced
-        scan lines are completely replaced by lines from the decay_base clip,
-        ``0.5`` means the clip is dimmed half and ``0`` means there is no
-        dimming at all. This simulates the decay of cathode ray tube phosphors
-        in the moments after they've been scanned onto. ``decay_base`` can be
-        used to dim to a background other than solid black.
+        exposing the ``decay_base`` clip. This simulates the decay of cathode
+        ray tube phosphors in the moments after they've been scanned onto and
+        the persistence of vision in humans.
+
+        Usually expressed as a :py:class:`float`, :py:class:`~decimal.Decimal`
+        or :py:class:`~fractions.Fraction` where ``1`` means the
+        previously-laced scan lines are completely replaced by lines from the
+        decay_base clip, ``0.5`` means the clip is dimmed half and ``0`` means
+        there is no dimming at all. ``decay_base`` can be used to dim
+        to a background other than solid black.
 
     :param VideoNode decay_base:
         A background clip that previously-scanned scan lines should be dimmed
@@ -269,7 +273,7 @@ Deinterlacing
         resampled = fixed_edges.resize.Spline36(format=clip.format)
         resampled.set_output()
 
-    :param typing.Callable kernel:
+    :param Resizer kernel:
         Resampling/resizing function to use for upsampling sub-sampled
         chroma. Must be interlacing-aware like most of VapourSynth's
         built in :doc:`functions/video/resize` functions. Defaults to
@@ -308,7 +312,7 @@ Interlacing
         displayed during interlaced-aware playback. If False, the bottom
         field is first.
     
-    :param str pulldown_pattern:
+    :param typing.Union[str, PulldownPattern, None] pulldown_pattern:
         A string of numbers seperated by colons, where each number
         indicates for how many field duration  to include each frame from
         the original clip in the new interlaced clip. A field duration is
@@ -321,7 +325,7 @@ Interlacing
         original frame is included for 2 field durations of the new clip
         and so-on.
     
-        Either pulldown_pattern or fpsnum must be supplied
+        Either ``pulldown_pattern`` or ``fpsnum`` must be supplied
     
     :param int fpsnum:
         The numerator of the speed of the new interlaced clip in
@@ -533,7 +537,13 @@ Types
     :members:
     :undoc-members:
 
+.. autoclass:: vsfieldkit.PulldownPattern
+    :members:
+    :undoc-members:
+
 .. autodata:: vsfieldkit.Factor
+
+.. autodata:: vsfieldkit.Resizer
 
 Resampling Kernels
 ------------------
