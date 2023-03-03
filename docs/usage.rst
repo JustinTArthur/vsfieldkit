@@ -127,7 +127,8 @@ Deinterlacing
     :param Resizer upsampling_kernel:
         Resampling/resizing function to use for upsampling sub-sampled
         chroma. Must be interlacing-aware like most of VapourSynth's
-        built in :doc:`functions/video/resize` functions. Defaults to
+        built in :external+vapoursynth:doc:`functions/video/resize` functions.
+        Defaults to
         :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
 
         If the nnedi3 VapourSynth plugin is present,
@@ -276,7 +277,8 @@ Deinterlacing
     :param Resizer kernel:
         Resampling/resizing function to use for upsampling sub-sampled
         chroma. Must be interlacing-aware like most of VapourSynth's
-        built in :doc:`functions/video/resize` functions. Defaults to
+        built in :external+vapoursynth:doc:`functions/video/resize` functions.
+        Defaults to
         :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36`.
 
         If the nnedi3 VapourSynth plugin is present,

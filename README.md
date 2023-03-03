@@ -16,7 +16,7 @@ Included functions:
 `vsfieldkit.group_by_field_order(clip)`  
 `vsfieldkit.resample_as_progressive(clip)`  
 `vsfieldkit.scan_interlaced(clip)`  
-`vsfieldkit.telecine(clip)`
+`vsfieldkit.telecine(clip)`  
 `vsfieldkit.upsample_as_progressive(clip)`
 
 See [the documentation](https://vsfieldkit.justinarthur.com/) for more information.

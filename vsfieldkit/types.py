@@ -50,7 +50,7 @@ class PulldownPattern(Enum):
     """For 24p to 50i with no speed-up or speed-down required."""
 
     MATCHED_PULLDOWN = '2'
-    """Each progressive frame is laid out on an interlaced frames."""
+    """Each progressive frame is laid out on an interlaced frame."""
 
     NTSC_FILM_PULLDOWN = '2:3:2:3'
     """For 24000/1001p to 60000/1001i with the least amount of judder.
