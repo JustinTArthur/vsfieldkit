@@ -1,0 +1,35 @@
+div#right_sidebar {
+  width: 24rem;
+}
+@media (min-width: 59rem) {
+  div#top_nav nav p.mobile_search_link {
+    display: none;
+  }
+}
+@media (max-width: 59rem) {
+  div#top_nav nav div.searchbox_wrapper {
+    display: none;
+  }
+}
+@media (max-width: 59rem) {
+  div.document {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+@media (max-width: 59rem) {
+  div.sphinxsidebar {
+    display: none;
+  }
+}
+@media (max-width: 59rem) {
+  div#right_sidebar {
+    display: none;
+  }
+}
+@media (max-width: 59rem) {
+  div.button_nav_wrapper {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}

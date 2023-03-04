@@ -33,12 +33,15 @@ autodoc_typehints = 'both'
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = 'alabaster'
+html_theme = 'piccolo_theme'
 html_theme_options = {
     # 'page_width': 'auto',
     # 'body_max_width': 1280
 }
 html_static_path = ['_static']
+html_css_files = [
+    'css/piccolo_overrides.css',
+]
 mathjax3_config = {
     'options': {
         'enableMenu': False
