@@ -27,6 +27,10 @@ Changed APIs
   :py:func:`vsfieldkit.upsample_as_progressive` now default to Spline 36 for
   any chroma subsampling or upsampling using the new 
   :py:func:`vsfieldkit.kernels.resample_chroma_with_spline36` .
+* :py:func:`vsfieldkit.upsample_as_progressive` now has `upsample_horizontally`
+  argument. Defaults to ``False``.
+  :py:func:`vsfieldkit.resample_as_progressive` uses this as ``True``
+  internally.
 
 1.1.0
 -----

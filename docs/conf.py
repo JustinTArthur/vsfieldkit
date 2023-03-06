@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'vsfieldkit'
-copyright = '2022, Justin Turner Arthur'
+copyright = '2023, Justin Turner Arthur'
 author = 'Justin Turner Arthur'
 
 
@@ -29,7 +29,7 @@ intersphinx_mapping = {
     'vapoursynth': ('http://www.vapoursynth.com/doc', None)
 }
 autodoc_mock_imports = ['vapoursynth']
-autodoc_typehints = 'both'
+autodoc_typehints = 'description'
 
 # -- Options for HTML output -------------------------------------------------
 

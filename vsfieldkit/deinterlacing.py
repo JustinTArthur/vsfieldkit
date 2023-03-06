@@ -90,7 +90,8 @@ def resample_as_progressive(
     """
     upsampled = upsample_as_progressive(
         clip,
-        kernel=upsampling_kernel
+        kernel=upsampling_kernel,
+        upsample_horizontally=True
     )
     resampled = convert_format_if_needed(
         upsampled,
@@ -103,6 +104,7 @@ def resample_as_progressive(
 
 def upsample_as_progressive(
     clip: VideoNode,
+    upsample_horizontally=False,
     kernel: Resizer = resample_chroma_with_spline36,
     dither_type: str = 'random'
 ):
@@ -110,9 +112,11 @@ def upsample_as_progressive(
     chroma subsampling removed so that previously-alternating chroma lines
     will be laid out in the correct one-line-after-another order for
     progressive content."""
+    subsampling_w = 0 if upsample_horizontally else clip.format.subsampling_w
     upsampled = convert_format_if_needed(
         clip,
         subsampling_h=0,
+        subsampling_w=subsampling_w,
         kernel=kernel,
         dither_type=dither_type
     )

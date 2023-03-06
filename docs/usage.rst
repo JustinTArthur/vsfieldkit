@@ -250,14 +250,17 @@ Deinterlacing
         Enumerations are available on the vsfieldkit top level module and the
         :py:class:`~vsfieldkit.InterlacedScanPostProcessor` enum.
 
-.. function:: vsfieldkit.upsample_as_progressive(clip) -> VideoNode
+.. function:: vsfieldkit.upsample_as_progressive(clip, \
+        upsample_horizontally=False, \
+        kernel=resample_chroma_with_spline36 \
+    ) -> VideoNode
 
     Returns a clip now marked as progressive and with any vertical chroma
     subsampling removed so that previously-alternating chroma lines will be
     laid out in the correct one-line-after-another order for progressive
     content.
 
-    This should be used instead of :py:func:`vsfieldkit.assume_progressive`
+    This can be used instead of :py:func:`vsfieldkit.assume_progressive`
     when the progressive frames have been encoded interlaced and additional
     processing is desired before restoring the target chroma sub-sampling.
 
@@ -273,6 +276,10 @@ Deinterlacing
         # Restore original subsampling with favorite kernel then output:
         resampled = fixed_edges.resize.Spline36(format=clip.format)
         resampled.set_output()
+
+    :param bool upsample_horizontally:
+        Whether or not to horizontally upsample. The function will always
+        vertically upsample if applicable.
 
     :param Resizer kernel:
         Resampling/resizing function to use for upsampling sub-sampled
@@ -543,9 +550,9 @@ Types
     :members:
     :undoc-members:
 
-.. autodata:: vsfieldkit.Factor
+.. autoclass:: vsfieldkit.Factor
 
-.. autodata:: vsfieldkit.Resizer
+.. autoclass:: vsfieldkit.Resizer
 
 Resampling Kernels
 ------------------

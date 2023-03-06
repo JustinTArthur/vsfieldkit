@@ -113,12 +113,13 @@ def _prepare_chroma_only_resampler(resampler_name: str) -> Resizer:
             resample_filter_uv=resampler_name
         )
 
-    try:
-        annotations = getattr(resample_nearest_neighbor, '__annotations__')
-    except AttributeError:
-        pass
-    else:
-        setattr(chroma_only_resampler, '__annotations__', annotations)
+    # If VapourSynth's out-of-the-box annotations improve:
+    # try:
+    #     annotations = getattr(resample_nearest_neighbor, '__annotations__')
+    # except AttributeError:
+    #     pass
+    # else:
+    #     setattr(chroma_only_resampler, '__annotations__', annotations)
 
     chroma_only_resampler.__name__ = f'resample_chroma_with_{resampler_name}'
     chroma_only_resampler.__qualname__ = (
