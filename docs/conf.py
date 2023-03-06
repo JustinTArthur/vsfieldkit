@@ -47,3 +47,5 @@ mathjax3_config = {
         'enableMenu': False
     }
 }
+
+toc_object_entries_show_parents = 'hide'
