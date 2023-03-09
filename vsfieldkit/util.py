@@ -54,6 +54,23 @@ def assume_progressive(clip: VideoNode) -> VideoNode:
     )
 
 
+def assume_vertically_cosited_chroma(clip: VideoNode) -> VideoNode:
+    def adjust_frame_chroma_loc(n: int, f: VideoFrame):
+        chroma_loc = f.props.get('_ChromaLocation')
+        if chroma_loc in VERTICAL_CENTER_CHROMA_LOCS:
+            new_frame = f.copy()
+            new_frame.props['_ChromaLocation'] = (
+                VERTICAL_CENTER_CHROMA_LOCS[chroma_loc]
+            )
+            return new_frame
+        return f
+
+    return clip.std.ModifyFrame(
+        clips=(clip,),
+        selector=adjust_frame_chroma_loc
+    )
+
+
 def double(clip: VideoNode) -> VideoNode:
     """Returns a clip where each original frame is repeated once and plays at
     twice the speed so the played image matches the original in time.
@@ -259,7 +276,8 @@ def require_one_of(
 def shift_chroma_to_luma_sited(
     clip: VideoNode,
     tff: bool,
-    shift_kernel: Resizer,
+    kernel: Resizer,
+    dither_type: Optional[str] = 'random'
 ) -> VideoNode:
     """Takes a clip marked as having vertically centered chroma and
     assumes that the chroma samples are centered BETWEEN luma samples
@@ -288,8 +306,16 @@ def shift_chroma_to_luma_sited(
     shifted_planes = [y]
     for plane in cb, cr:
         plane_fields = plane.std.SeparateFields(tff=tff)
-        shifted_as_top = shift_kernel(plane_fields, src_top=-1 / 4)
-        shifted_as_bottom = shift_kernel(plane_fields, src_top=1 / 4)
+        shifted_as_top = kernel(
+            plane_fields,
+            src_top=-1 / 4,
+            dither_type=dither_type
+        )
+        shifted_as_bottom = kernel(
+            plane_fields,
+            src_top=1 / 4,
+            dither_type=dither_type
+        )
         field_shifts = {
             None: shifted_as_top if tff else shifted_as_bottom,
             0: shifted_as_bottom,
@@ -368,3 +394,24 @@ def annotate_bobbed_fields(
         clips=(clip, double(original_clip)),
         selector=annotate_frame
     )
+
+
+def copy_specific_frame_props(
+    clip: VideoNode,
+    prop_src: VideoNode,
+    props: Sequence[str]
+):
+    if not props:
+        return clip
+
+    def copy(n: int, f: Sequence[VideoFrame]):
+        original_frame, prop_src_frame = f
+        new_frame = original_frame.copy()
+        for prop in props:
+            if prop in prop_src_frame.props:
+                new_frame.props[prop] = prop_src_frame.props[prop]
+            elif prop in new_frame.props:
+                del new_frame.props[prop]
+        return new_frame
+
+    return clip.std.ModifyFrame(clips=(clip, prop_src), selector=copy)

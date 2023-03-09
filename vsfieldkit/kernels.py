@@ -4,14 +4,15 @@ from vapoursynth import (ColorFamily, Error, PresetFormat, VideoFormat,
                          VideoNode, core)
 
 from vsfieldkit.types import Resizer
-from vsfieldkit.util import (annotate_bobbed_fields, format_from_specifier,
-                             require_plugins, shift_chroma_to_luma_sited)
+from vsfieldkit.util import (annotate_bobbed_fields, convert_format_if_needed,
+                             format_from_specifier, require_plugins,
+                             shift_chroma_to_luma_sited)
 
 resample_nearest_neighbor = core.resize.Point
 
 
 def prepare_nnedi3_chroma_upsampler(
-    shift_kernel: Resizer = core.resize.Spline36,
+    fallback_kernel: Resizer = core.resize.Spline36,
     nsize: Optional[int] = None,
     nns: Optional[int] = None,
     qual: Optional[int] = None,
@@ -45,14 +46,23 @@ def prepare_nnedi3_chroma_upsampler(
         subsampling.
         """
         require_plugins(('nnedi3', 'nnedi3'))
-
+        target_format = format_from_specifier(format)
+        # Process any non-vertical-upsampling resampling first:
+        clip = convert_format_if_needed(
+            clip,
+            format=target_format.replace(
+                subsampling_h=clip.format.subsampling_h
+            ),
+            kernel=fallback_kernel,
+            **resize_kwargs
+        )
         if (
             clip.format.subsampling_h != 1
             or format is None
-            or format_from_specifier(format) != clip.format.replace(subsampling_h=0)
+            or target_format.subsampling_h != 0
         ):
             raise Error(
-                'upsample_chroma_using_nnedi3 is currently only for format '
+                'vsfieldkit nnedi3 upsamplers are currently only for format '
                 'conversion from Y′CbCr 4:2:0 to Y′CbCr 4:2:2 or Y′CbCr 4:4:0 '
                 'to Y′CbCr 4:4:4.'
             )
@@ -99,7 +109,8 @@ def prepare_nnedi3_chroma_upsampler(
         chromaloc_corrected = shift_chroma_to_luma_sited(
             upsampled,
             tff=True,
-            shift_kernel=shift_kernel
+            kernel=fallback_kernel,
+            dither_type=resize_kwargs.get('dither_type')
         )
         return chromaloc_corrected
     return upsample_chroma_using_nnedi3

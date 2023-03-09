@@ -5,7 +5,9 @@ from vapoursynth import FieldBased, VideoNode, core
 
 from vsfieldkit.kernels import resample_chroma_with_spline36
 from vsfieldkit.types import Resizer
-from vsfieldkit.util import convert_format_if_needed
+from vsfieldkit.util import (assume_vertically_cosited_chroma,
+                             convert_format_if_needed,
+                             copy_specific_frame_props)
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
 
@@ -82,12 +84,16 @@ def resample_as_progressive(
     clip: VideoNode,
     subsampling_kernel: Resizer = resample_chroma_with_spline36,
     upsampling_kernel: Resizer = resample_chroma_with_spline36,
-    dither_type: str = 'random'
+    dither_type: str = 'random',
+    avoid_chroma_shift=True
 ) -> VideoNode:
     """When every frame of the clip represents progressive content (no
     combing) this will take any frames encoded interlaced and resample them so
     that they are progressive in both content AND format.
     """
+    original_clip = clip
+    if avoid_chroma_shift:
+        clip = assume_vertically_cosited_chroma(clip)
     upsampled = upsample_as_progressive(
         clip,
         kernel=upsampling_kernel,
@@ -99,6 +105,12 @@ def resample_as_progressive(
         kernel=subsampling_kernel,
         dither_type=dither_type
     )
+    if avoid_chroma_shift:
+        resampled = copy_specific_frame_props(
+            resampled,
+            prop_src=original_clip,
+            props=('_ChromaLocation',)
+        )
     return resampled
 
 
