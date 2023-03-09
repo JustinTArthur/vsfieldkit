@@ -10,7 +10,7 @@ from vsfieldkit.util import (annotate_bobbed_fields, assume_bff,
                              assume_progressive, assume_tff, double,
                              group_by_combed, group_by_field_order)
 
-VERSION = 1, 1, 0
+VERSION = 2, 0, 0
 
 SCAN_BLENDED = ChromaSubsampleScanning.SCAN_BLENDED
 SCAN_LATEST = ChromaSubsampleScanning.SCAN_LATEST

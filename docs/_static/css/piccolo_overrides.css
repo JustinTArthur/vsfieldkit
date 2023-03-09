@@ -1,33 +1,33 @@
 div#right_sidebar {
-  width: 20rem;
+  width: 18rem;
 }
-@media (min-width: 55rem) {
+@media (min-width: 53rem) {
   div#top_nav nav p.mobile_search_link {
     display: none;
   }
 }
-@media (max-width: 55rem) {
+@media (max-width: 53rem) {
   div#top_nav nav div.searchbox_wrapper {
     display: none;
   }
 }
-@media (max-width: 55rem) {
+@media (max-width: 53rem) {
   div.document {
     margin-left: 0;
     margin-right: 0;
   }
 }
-@media (max-width: 55rem) {
+@media (max-width: 53rem) {
   div.sphinxsidebar {
     display: none;
   }
 }
-@media (max-width: 55rem) {
+@media (max-width: 53rem) {
   div#right_sidebar {
     display: none;
   }
 }
-@media (max-width: 55rem) {
+@media (max-width: 53rem) {
   div.button_nav_wrapper {
     margin-left: 0;
     margin-right: 0;

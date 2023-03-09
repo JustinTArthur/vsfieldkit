@@ -1,7 +1,7 @@
 Changelog
 =========
-2.0.0-upcoming
---------------
+2.0.0
+-----
 New Features
 ^^^^^^^^^^^^
 * Interlacing! Targeting deinterlacer testers and engineers in the broadcast
@@ -23,6 +23,8 @@ Changed APIs
 
 * :py:func:`vsfieldkit.resample_as_progressive` ``kernel`` argument renamed
   to ``subsampling_kernel`` for clarity. ``upsampling_kernel`` argument added.
+  It also now fakes luma-co-sited chroma during upsampling to avoid lossy
+  chroma re-siting.
 * :py:func:`vsfieldkit.resample_as_progressive` and
   :py:func:`vsfieldkit.upsample_as_progressive` now default to Spline 36 for
   any chroma subsampling or upsampling using the new 
@@ -31,8 +33,6 @@ Changed APIs
   ``upsample_horizontally`` argument. Defaults to ``False``.
   :py:func:`vsfieldkit.resample_as_progressive` uses this as ``True``
   internally.
-* :py:func:`vsfieldkit.resample_as_progressive` fakes luma-co-sited chroma
-  during upsampling to avoid lossy chroma site shift operation.
 
 1.1.0
 -----

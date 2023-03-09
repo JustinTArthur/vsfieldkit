@@ -17,6 +17,7 @@ Included functions:
 `vsfieldkit.resample_as_progressive(clip)`  
 `vsfieldkit.scan_interlaced(clip)`  
 `vsfieldkit.telecine(clip)`  
-`vsfieldkit.upsample_as_progressive(clip)`
+`vsfieldkit.upsample_as_progressive(clip)`  
+`vsfieldkit.weave_fields(clip)`
 
 See [the documentation](https://vsfieldkit.justinarthur.com/) for more information.

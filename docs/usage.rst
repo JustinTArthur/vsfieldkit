@@ -323,16 +323,20 @@ Interlacing
     
     :param typing.Union[str, PulldownPattern, None] pulldown_pattern:
         A string of numbers seperated by colons, where each number
-        indicates for how many field duration  to include each frame from
+        indicates for how many field durations to include each frame from
         the original clip in the new interlaced clip. A field duration is
         half the interlaced frame duration.
     
         For example, the popular "2:3" pattern will include the first
         original progressive frame for 2 field durations in the new
         interlaced clip. It will then include parts of the second original
-        frame for 3 field durations. The pattern repeats so the third
+        frame for 3 field durations. The pattern repeats, so the third
         original frame is included for 2 field durations of the new clip
         and so-on.
+
+        Some common pulldown pattern enumerations are available on the
+        top level module or the :py:class:`~vsfieldkit.PulldownPattern` enum.
+        They can be supplied instead of a ``str``.
     
         Either ``pulldown_pattern`` or ``fpsnum`` must be supplied
     
