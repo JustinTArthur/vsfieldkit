@@ -295,6 +295,14 @@ Deinterlacing
 
 Interlacing
 ^^^^^^^^^^^
+.. note::
+    VapourSynth's vspipe does not inspect frame properties so assumes it's
+    outputting progressive frames in the YUV4MPEG2 headers it supplies. If
+    needing to output interlaced frames, either supply manual interlacing hints
+    to whatever is receiving the vspipe output or use
+    :py:func:`vsfieldkit.output_frame_inferred_y4m` to have the script itself
+    produce output with interlace-aware metadata.
+
 .. function:: vsfieldkit.telecine( \
         clip, \
         *, \
@@ -468,6 +476,57 @@ Repair
 
         As of fillborders v2, possible values are ``"fillmargins"``,
         ``"mirror"``, and ``"repeat"``.
+
+Output
+^^^^^^
+.. function:: vsfieldkit.output_frame_inferred_y4m( \
+        clip, \
+        fileobj, \
+        progress_update=None, \ 
+        prefetch=0, \
+        backlog=-1 \
+        )
+
+    Similar to :py:meth:`VideoNode.output`, writes raw video data to the given
+    file object. The output is decorated with YUV4MPEG2 headers based on the
+    clip format and the first frame’s properties.
+
+    This allows the script itself to provide video output. While potentially
+    slower than using vspipe, vspipe as of writing does not supply y4m headers
+    based on frame properties, so does not communicate interlacing,
+    :abbr:`SAR (Sample Aspect Ratio)`, or chroma siting metadata to the
+    receiving file or pipe. This function will include those if they are
+    present in the first frame's properties and if they're supported by the
+    YUV4MPEG2 specification.
+
+    This is ultimately a hack that wraps an underlying call to
+    :py:meth:`VideoNode.output`.
+
+    .. code-block:: python
+        :caption: Example
+
+        if __name__ in ('__vapoursynth__', '__vspreview__'):
+            # e.g. vspipe or vspreview
+            clip.set_output(0)
+        elif __name__ == '__main__':
+            # Script run directly by a Python interpreter
+            vsfieldkit.output_frame_inferred_y4m(clip, sys.stdout)
+
+    :param VideoNode clip: Video clip to output.
+
+    :param typing.IO fileobj: Stream or file-like object. Either stdout,
+        stderr, or an object supporting binary writes. 
+
+    :param progress_update: A callback taking in the amount
+        of outputted frames and the number of total frames in the clip.
+
+    :type progress_update: typing.Callable[[int, int], None]
+
+    :param int prefetch: Used for debugging the underlying
+        :py:meth:`VideoNode.output` call.
+
+    :param int backlog: Used for debugging the underlying
+        :py:meth:`VideoNode.output` call.
 
 Utility
 ^^^^^^^

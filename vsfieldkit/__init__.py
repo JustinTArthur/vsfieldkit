@@ -1,6 +1,7 @@
 from vsfieldkit.deinterlacing import (bob, resample_as_progressive,
                                       upsample_as_progressive)
 from vsfieldkit.interlacing import telecine, weave_fields
+from vsfieldkit.output import output_frame_inferred_y4m
 from vsfieldkit.repair import fill_analog_frame_ends
 from vsfieldkit.scanning import scan_interlaced
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor, FormatSpecifier,

@@ -18,6 +18,10 @@ New Features
 * :py:func:`vsfieldkit.annotate_bobbed_fields` for retro-actively adding a
   property to bobbed frames noting the field (top or bottom) they came from.
 
+* :py:func:`vsfieldkit.output_frame_inferred_y4m` for outputting yuv4mpeg2
+  (y4m) data with metadata derived from the first frame's properties, allowing
+  for interlaced output, SAR, and chroma siting as available.
+
 Changed APIs
 ^^^^^^^^^^^^
 
