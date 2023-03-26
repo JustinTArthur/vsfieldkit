@@ -8,7 +8,8 @@ from vsfieldkit.util import (annotate_bobbed_fields, convert_format_if_needed,
                              format_from_specifier, require_plugins,
                              shift_chroma_to_luma_sited)
 
-resample_nearest_neighbor = core.resize.Point
+resize = core.resize
+resample_nearest_neighbor = resize.Point
 
 
 def prepare_nnedi3_chroma_upsampler(
@@ -113,11 +114,17 @@ def prepare_nnedi3_chroma_upsampler(
             dither_type=resize_kwargs.get('dither_type')
         )
         return chromaloc_corrected
+
+    upsample_chroma_using_nnedi3.supports_resizing = False
     return upsample_chroma_using_nnedi3
 
 
-def _prepare_chroma_only_resampler(resampler_name: str) -> Resizer:
+def _prepare_chroma_only_resampler(resampler: Resizer) -> Resizer:
+    resampler_name = resampler.name.lower()
     def chroma_only_resampler(*resize_args, **resize_kwargs) -> VideoNode:
+        if 'width' in resize_kwargs or 'height' in resize_kwargs:
+            # Not a simple format change.
+            return resampler(*resize_args, **resize_kwargs)
         return resample_nearest_neighbor(
             *resize_args,
             **resize_kwargs,
@@ -146,9 +153,9 @@ def _prepare_chroma_only_resampler(resampler_name: str) -> Resizer:
     return chroma_only_resampler
 
 
-resample_chroma_with_bicubic = _prepare_chroma_only_resampler('bicubic')
-resample_chroma_with_bilinear = _prepare_chroma_only_resampler('bilinear')
-resample_chroma_with_lanczos = _prepare_chroma_only_resampler('lanczos')
-resample_chroma_with_spline16 = _prepare_chroma_only_resampler('spline16')
-resample_chroma_with_spline36 = _prepare_chroma_only_resampler('spline36')
-resample_chroma_with_spline64 = _prepare_chroma_only_resampler('spline64')
+resample_chroma_with_bicubic = _prepare_chroma_only_resampler(resize.Bicubic)
+resample_chroma_with_bilinear = _prepare_chroma_only_resampler(resize.Bilinear)
+resample_chroma_with_lanczos = _prepare_chroma_only_resampler(resize.Lanczos)
+resample_chroma_with_spline16 = _prepare_chroma_only_resampler(resize.Spline16)
+resample_chroma_with_spline36 = _prepare_chroma_only_resampler(resize.Spline36)
+resample_chroma_with_spline64 = _prepare_chroma_only_resampler(resize.Spline64)

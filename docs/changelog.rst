@@ -1,5 +1,15 @@
 Changelog
 =========
+2.0.1
+-----
+Fix :py:func:`vsfieldkit.resample_as_progressive`'s ``avoid_chroma_shift``
+option. It was having an opposite effect from intended and resampling with even
+lossier shift.
+
+The new method avoids the subsampling grid altogether by resampling the Cb and
+Cr planes separately, avoid unnecessary re-siting even with nearest-neighbor
+resampling.
+
 2.0.0
 -----
 New Features

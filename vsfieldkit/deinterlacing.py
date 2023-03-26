@@ -5,9 +5,7 @@ from vapoursynth import FieldBased, VideoNode, core
 
 from vsfieldkit.kernels import resample_chroma_with_spline36
 from vsfieldkit.types import Resizer
-from vsfieldkit.util import (assume_vertically_cosited_chroma,
-                             convert_format_if_needed,
-                             copy_specific_frame_props)
+from vsfieldkit.util import convert_format_if_needed
 from vsfieldkit.vapoursynth import VS_FIELD_FROM_BOTTOM, VS_FIELD_FROM_TOP
 
 
@@ -91,25 +89,60 @@ def resample_as_progressive(
     combing) this will take any frames encoded interlaced and resample them so
     that they are progressive in both content AND format.
     """
-    original_clip = clip
-    if avoid_chroma_shift:
-        clip = assume_vertically_cosited_chroma(clip)
-    upsampled = upsample_as_progressive(
-        clip,
-        kernel=upsampling_kernel,
-        upsample_horizontally=True
-    )
-    resampled = convert_format_if_needed(
-        upsampled,
-        format=clip.format,
-        kernel=subsampling_kernel,
-        dither_type=dither_type
-    )
-    if avoid_chroma_shift:
-        resampled = copy_specific_frame_props(
-            resampled,
-            prop_src=original_clip,
-            props=('_ChromaLocation',)
+    if (
+        avoid_chroma_shift
+        and (
+            not hasattr(upsampling_kernel, 'supports_resizing')
+            or upsampling_kernel.supports_resizing is True
+        )
+    ):
+        # For the round trip up and down, we can avoid the subsampling grid
+        # altogether by working on individual planes.
+        y, cb, cr = clip.std.SplitPlanes()
+        upsampled_planes = [
+             y.std.SetFieldBased(FieldBased.FIELD_PROGRESSIVE)
+        ] + [
+             convert_format_if_needed(
+                 plane,
+                 height=y.height,
+                 width=y.width,
+                 kernel=upsampling_kernel
+             ).std.SetFieldBased(FieldBased.FIELD_PROGRESSIVE)
+             for plane in (cb, cr)
+        ]
+        resampled_planes = (
+            upsampled_planes[0],
+            convert_format_if_needed(
+                upsampled_planes[1],
+                height=cb.height,
+                width=cb.width,
+                kernel=subsampling_kernel,
+                dither_type=dither_type
+            ),
+            convert_format_if_needed(
+                upsampled_planes[2],
+                height=cr.height,
+                width=cr.width,
+                kernel=subsampling_kernel,
+                dither_type=dither_type
+            )
+        )
+        resampled = core.std.ShufflePlanes(
+            clips=resampled_planes,
+            planes=(0, 0, 0),
+            colorfamily=clip.format.color_family
+        )
+    else:
+        upsampled = upsample_as_progressive(
+            clip,
+            kernel=upsampling_kernel,
+            upsample_horizontally=True
+        )
+        resampled = convert_format_if_needed(
+            upsampled,
+            format=clip.format,
+            kernel=subsampling_kernel,
+            dither_type=dither_type,
         )
     return resampled
 
