@@ -1,11 +1,11 @@
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 from vapoursynth import (ColorFamily, Error, PresetFormat, VideoFormat,
                          VideoNode, core)
 
 from vsfieldkit.types import Resizer
 from vsfieldkit.util import (annotate_bobbed_fields, convert_format_if_needed,
-                             format_from_specifier, require_plugins,
+                             format_from_specifier, require_one_of,
                              shift_chroma_to_luma_sited)
 
 resize = core.resize
@@ -14,6 +14,7 @@ resample_nearest_neighbor = resize.Point
 
 def prepare_nnedi3_chroma_upsampler(
     fallback_kernel: Resizer = core.resize.Spline36,
+    nnedi3_func: Optional[Callable] = None,
     nsize: Optional[int] = None,
     nns: Optional[int] = None,
     qual: Optional[int] = None,
@@ -23,7 +24,8 @@ def prepare_nnedi3_chroma_upsampler(
     int16_prescreener: Optional[bool] = None,
     int16_predictor: Optional[bool] = None,
     exp: Optional[int] = None,
-    show_mask: Optional[bool] = None
+    show_mask: Optional[bool] = None,
+    opencl_device: Optional[int] = None
 ) -> Resizer:
     """Creates a resampling function that uses the nnedi3 interpolation model
     originally made for deinterlacing to produce a clip without vertical chroma
@@ -34,7 +36,44 @@ def prepare_nnedi3_chroma_upsampler(
     subsampling, going from Y′CbCr 4:2:0 to Y′CbCr 4:2:2 or Y′CbCr 4:4:0 to
     Y′CbCr 4:4:4. Attempting to make any other light/color/sampling changes
     will result in an error.
+    
+    This can use the znedi3 (CPU), nnedi3 (CPU), or nnedi3cl (GPU) plugin.
+    It'll look for those plugins in that order unless nnedi3_func or
+    opencl_device is supplied. 
     """
+    require_one_of(
+        ('znedi3', 'znedi3'),
+        ('nnedi3', 'nnedi3'),
+        ('nnedi3cl', 'nnedi3cl')
+    )
+    if nnedi3_func:
+        # Assume the user knows what the function allows if they passed it
+        extra_nnedi3_args = {
+            'int16_prescreener': int16_prescreener,
+            'int16_predictor': int16_predictor,
+            'device': opencl_device
+        }
+    elif opencl_device:
+        if not nnedi3_func:
+            nnedi3_func = core.nnedi3cl.NNEDI3CL
+        extra_nnedi3_args = {
+            'device': opencl_device,
+        }
+    elif hasattr(core, 'znedi3'):
+        nnedi3_func = core.znedi3.nnedi3
+        extra_nnedi3_args = {
+            'int16_prescreener': int16_prescreener,
+            'int16_predictor': int16_predictor
+        }
+    elif hasattr(core, 'nnedi3'):
+        nnedi3_func = core.nnedi3.nnedi3
+        extra_nnedi3_args = {
+            'int16_prescreener': int16_prescreener,
+            'int16_predictor': int16_predictor
+        }
+    else:
+        nnedi3_func = core.nnedi3cl.NNEDI3CL
+            
     def upsample_chroma_using_nnedi3(
         clip: VideoNode,
         format: Union[VideoFormat, PresetFormat] = None,
@@ -46,7 +85,6 @@ def prepare_nnedi3_chroma_upsampler(
         made for deinterlacing to produce a clip without vertical chroma
         subsampling.
         """
-        require_plugins(('nnedi3', 'nnedi3'))
         target_format = format_from_specifier(format)
         # Process any non-vertical-upsampling resampling first:
         clip = convert_format_if_needed(
@@ -71,16 +109,12 @@ def prepare_nnedi3_chroma_upsampler(
         y, cb, cr = clip.std.SplitPlanes()
         # We're using TFF (field=3). It doesn't really matter what order we bob
         # in, as long as we're consistent when we annotate for re-weaving.
-        bobbed_cb = cb.nnedi3.nnedi3(field=3, nsize=nsize, nns=nns, qual=qual,
-                                     etype=etype, pscrn=pscrn, opt=opt,
-                                     int16_prescreener=int16_prescreener,
-                                     int16_predictor=int16_predictor, exp=exp,
-                                     show_mask=show_mask)
-        bobbed_cr = cr.nnedi3.nnedi3(field=3, nsize=nsize, nns=nns, qual=qual,
-                                     etype=etype, pscrn=pscrn, opt=opt,
-                                     int16_prescreener=int16_prescreener,
-                                     int16_predictor=int16_predictor, exp=exp,
-                                     show_mask=show_mask)
+        bobbed_cb = nnedi3_func(cb, field=3, nsize=nsize, nns=nns, qual=qual,
+                                etype=etype, pscrn=pscrn, opt=opt, exp=exp,
+                                show_mask=show_mask, **extra_nnedi3_args)
+        bobbed_cr = nnedi3_func(cr, field=3, nsize=nsize, nns=nns, qual=qual,
+                                etype=etype, pscrn=pscrn, opt=opt, exp=exp,
+                                show_mask=show_mask, **extra_nnedi3_args)
         # These are effectively bobbed.
         # Treat the bobs as if they were plain separated fields
         bobbed_cb = annotate_bobbed_fields(
