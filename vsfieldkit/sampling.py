@@ -1,13 +1,12 @@
 import math
-import sys
 from fractions import Fraction
 from typing import Optional, Union
 
 from vapoursynth import Error, VideoNode, core
 
 from vsfieldkit.types import FormatSpecifier, Resizer
-from vsfieldkit.util import convert_format_if_needed, format_from_specifier, \
-    black_clip_from_clip, black_color_from_clip
+from vsfieldkit.util import (black_color_from_clip, convert_format_if_needed,
+                             format_from_specifier)
 
 BT601_SAMPLE_RATE = 13_500_000
 NTSC_SUBCARRIER_FREQ = 5_000_000 * Fraction(63, 88)
@@ -76,7 +75,7 @@ def resample_bt601_as_4fsc(
     kernel: Resizer = core.resize.Spline36,
     format: Optional[FormatSpecifier] = None,
     output_width_factor: Optional[int] = 8,
-    dither_type='random',
+    dither_type: Optional[str] = 'random',
     blank_src_pad=True,
     **format_resize_args
 ) -> VideoNode:
@@ -130,6 +129,7 @@ def resample_bt601_as_4fsc(
         blank_src_pad=blank_src_pad,
         format=format,
         kernel=kernel,
+        dither_type=dither_type,
         **format_resize_args
     )
 
@@ -139,6 +139,7 @@ def resample_4fsc_as_bt601(
     target_height: Optional[int] = None,
     format: Optional[FormatSpecifier] = None,
     kernel: Resizer = core.resize.Spline36,
+    dither_type: Optional[str] = 'random',
     **format_resize_args
 ):
     if target_height not in (None, 480, 486, 576):
@@ -170,6 +171,7 @@ def resample_4fsc_as_bt601(
         target_active_width=target_active_width,
         format=format,
         kernel=kernel,
+        dither_type=dither_type,
         **format_resize_args
     )
 
@@ -185,6 +187,7 @@ def _resample_digitized_active_regions(
     format: Optional[FormatSpecifier] = None,
     output_width_factor: int = 8,
     blank_src_pad: Optional[bool] = True,
+    dither_type: Optional[str] = 'random',
     **format_resize_args
 ) -> VideoNode:
     whole_target_width = math.ceil(target_active_width)
@@ -212,10 +215,11 @@ def _resample_digitized_active_regions(
     src_original_left_pad = src_original_horizontal_pad / 2
 
     src_clip = clip
+    src_width = src_active_width + src_horizontal_pad
     src_left = src_original_left_pad - src_left_pad
-    print(f'{src_left=}', file=sys.stderr)
     if blank_src_pad and src_left < 0:
         # Sourcing samples further left than actual source clip.
+        # Extend the source clip so that we're pulling from blank padding.
         extend_by = math.ceil(0 - src_left)
         blanking_color = black_color_from_clip(src_clip)
         src_clip = src_clip.std.AddBorders(
@@ -223,15 +227,13 @@ def _resample_digitized_active_regions(
             right=extend_by,
             color=blanking_color
         )
-        print(f'{src_clip.width=}', file=sys.stderr)
         src_original_horizontal_pad = src_clip.width - src_active_width
         src_original_left_pad = src_original_horizontal_pad / 2
         src_left = src_original_left_pad - src_left_pad
-    src_width = src_active_width + src_horizontal_pad
 
     target_format = format_from_specifier(format) if format else None
     return convert_format_if_needed(
-        clip,
+        src_clip,
         format=target_format,
         kernel=kernel,
         width=target_width,
@@ -245,5 +247,6 @@ def _resample_digitized_active_regions(
             None if target_height is None
             else float(target_height)
         ),
+        dither_type=dither_type,
         **format_resize_args
     )
