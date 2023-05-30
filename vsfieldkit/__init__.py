@@ -3,6 +3,7 @@ from vsfieldkit.deinterlacing import (bob, resample_as_progressive,
 from vsfieldkit.interlacing import telecine, weave_fields
 from vsfieldkit.output import output_frame_inferred_y4m
 from vsfieldkit.repair import fill_analog_frame_ends
+from vsfieldkit.sampling import resample_4fsc_as_bt601, resample_bt601_as_4fsc
 from vsfieldkit.scanning import scan_interlaced
 from vsfieldkit.types import (ChromaSubsampleScanning, Factor, FormatSpecifier,
                               InterlacedScanPostProcessor, PulldownPattern,
@@ -11,7 +12,7 @@ from vsfieldkit.util import (annotate_bobbed_fields, assume_bff,
                              assume_progressive, assume_tff, double,
                              group_by_combed, group_by_field_order)
 
-VERSION = 2, 0, 1
+VERSION = 2, 2, 0
 
 SCAN_BLENDED = ChromaSubsampleScanning.SCAN_BLENDED
 SCAN_LATEST = ChromaSubsampleScanning.SCAN_LATEST
