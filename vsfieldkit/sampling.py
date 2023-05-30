@@ -1,11 +1,13 @@
 import math
+import sys
 from fractions import Fraction
 from typing import Optional, Union
 
 from vapoursynth import Error, VideoNode, core
 
 from vsfieldkit.types import FormatSpecifier, Resizer
-from vsfieldkit.util import convert_format_if_needed
+from vsfieldkit.util import convert_format_if_needed, format_from_specifier, \
+    black_clip_from_clip, black_color_from_clip
 
 BT601_SAMPLE_RATE = 13_500_000
 NTSC_SUBCARRIER_FREQ = 5_000_000 * Fraction(63, 88)
@@ -70,15 +72,29 @@ PAL_4FSC_ACTIVE_WIDTH = PAL_4FSC * PAL_LINE_ACTIVE_TIME
 
 def resample_bt601_as_4fsc(
     clip: VideoNode,
+    target_height: Optional[int] = None,
     kernel: Resizer = core.resize.Spline36,
     format: Optional[FormatSpecifier] = None,
     output_width_factor: Optional[int] = 8,
-    **format_resize_args,
+    dither_type='random',
+    blank_src_pad=True,
+    **format_resize_args
 ) -> VideoNode:
     """Takes a clip sampled from analog video according to the BT.601 spec
     and generates new video as if sampled at four times the color sub-carrier
     frequency (4fSC) of the theoretical original signal instead. Optionally
     changes the sample format in the same transformation.
+
+    Because BT.601-sampled content from 525-line/NTSC-like systems is often
+    cropped to 480i and 4fsc content is rarely cropped, this defaults to
+    positioning 480i on a 486i canvas for the 4fSC output. This behavior can
+    be overriden with target_height=480
+
+    The BT.601 spec outlines expected colorimetry of the transported video
+    content. However, this function leaves colorimetry untouched, focusing on
+    sample rates and picture geometry. Additionaly note, the output clip
+    comprises decoded video samples (e.g. Gray, R′G′B′, or Y′CbCr) and not pure
+    4fSC signal sample values.
     """
     if clip.width != 720:
         raise Error('Only full active BT.601 width (720 samples) is supported')
@@ -88,20 +104,19 @@ def resample_bt601_as_4fsc(
         src_active_width = PAL_ACTIVE_BT601_SAMPLES
         target_active_width = PAL_4FSC_ACTIVE_WIDTH
         src_original_top = None
-        target_height = None
     elif clip.height == 480:
         src_active_width = NTSC_170M_ACTIVE_BT601_SAMPLES
         target_active_width = NTSC_4FSC_ACTIVE_WIDTH
         # Assume vertical SMPTE RP 202 crop of ST 170M NTSC for compression.
         # This is 5 lines below the 486i start.
         src_original_top = -5
-        target_height = 486
+        if target_height is None:
+            target_height = 486
     elif clip.height == 486:
         # Full height of SMPTE 170M active video
         src_active_width = NTSC_170M_ACTIVE_BT601_SAMPLES
         target_active_width = NTSC_4FSC_ACTIVE_WIDTH
         src_original_top = None
-        target_height = None
     else:
         raise Error('480i, 486i, or 576i height required for BT.601 source')
 
@@ -112,8 +127,10 @@ def resample_bt601_as_4fsc(
         target_height=target_height,
         target_active_width=target_active_width,
         output_width_factor=output_width_factor,
+        blank_src_pad=blank_src_pad,
         format=format,
         kernel=kernel,
+        **format_resize_args
     )
 
 
@@ -121,7 +138,8 @@ def resample_4fsc_as_bt601(
     clip: VideoNode,
     target_height: Optional[int] = None,
     format: Optional[FormatSpecifier] = None,
-    kernel: Resizer = core.resize.Spline36
+    kernel: Resizer = core.resize.Spline36,
+    **format_resize_args
 ):
     if target_height not in (None, 480, 486, 576):
         raise Error('Target height must be 480, 486, or 576.')
@@ -152,6 +170,7 @@ def resample_4fsc_as_bt601(
         target_active_width=target_active_width,
         format=format,
         kernel=kernel,
+        **format_resize_args
     )
 
 
@@ -160,11 +179,13 @@ def _resample_digitized_active_regions(
     src_active_width: Union[int, Fraction],
     target_active_width: Union[int, Fraction],
     kernel: Resizer,
-    src_original_top: Optional[int, Fraction] = None,
+    src_original_top: Optional[Union[int, Fraction]] = None,
     target_height: Optional[int] = None,
     target_width: Optional[int] = None,
     format: Optional[FormatSpecifier] = None,
-    output_width_factor: int = 8
+    output_width_factor: int = 8,
+    blank_src_pad: Optional[bool] = True,
+    **format_resize_args
 ) -> VideoNode:
     whole_target_width = math.ceil(target_active_width)
     if (
@@ -190,19 +211,39 @@ def _resample_digitized_active_regions(
     src_original_horizontal_pad = clip.width - src_active_width
     src_original_left_pad = src_original_horizontal_pad / 2
 
+    src_clip = clip
+    src_left = src_original_left_pad - src_left_pad
+    print(f'{src_left=}', file=sys.stderr)
+    if blank_src_pad and src_left < 0:
+        # Sourcing samples further left than actual source clip.
+        extend_by = math.ceil(0 - src_left)
+        blanking_color = black_color_from_clip(src_clip)
+        src_clip = src_clip.std.AddBorders(
+            left=extend_by,
+            right=extend_by,
+            color=blanking_color
+        )
+        print(f'{src_clip.width=}', file=sys.stderr)
+        src_original_horizontal_pad = src_clip.width - src_active_width
+        src_original_left_pad = src_original_horizontal_pad / 2
+        src_left = src_original_left_pad - src_left_pad
+    src_width = src_active_width + src_horizontal_pad
+
+    target_format = format_from_specifier(format) if format else None
     return convert_format_if_needed(
         clip,
-        format=format,
+        format=target_format,
         kernel=kernel,
         width=target_width,
-        src_left=float(src_original_left_pad - src_left_pad),
+        src_left=float(src_left),
         src_top=(
             None if src_original_top is None
             else float(src_original_top)
         ),
-        src_width=float(src_active_width + src_horizontal_pad),
+        src_width=float(src_width),
         src_height=(
             None if target_height is None
             else float(target_height)
-        )
+        ),
+        **format_resize_args
     )
