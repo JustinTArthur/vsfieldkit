@@ -14,8 +14,8 @@ NTSC_LINE_FREQ = Fraction(2, 455) * NTSC_SUBCARRIER_FREQ
 NTSC_FIELD_FREQ = Fraction(2, 525) * NTSC_LINE_FREQ
 NTSC_LINE_TIME = 1 / NTSC_LINE_FREQ
 
-NTSC_170M_LEAD_BLANKING_TIME = Fraction(1_500, 1000000000)
-NTSC_170M_TAIL_BLANKING_TIME = Fraction(9_200, 1000000000)
+NTSC_170M_LEAD_BLANKING_TIME = Fraction(1_500, 1_000_000_000)
+NTSC_170M_TAIL_BLANKING_TIME = Fraction(9_200, 1_000_000_000)
 NTSC_170M_LINE_BLANKING_TIME = (
     NTSC_170M_LEAD_BLANKING_TIME
     + NTSC_170M_TAIL_BLANKING_TIME
@@ -27,7 +27,7 @@ NTSC_170M_ACTIVE_BT601_SAMPLES = (
     * BT601_SAMPLE_RATE
 )
 
-NTSC_BT470_LINE_BLANKING_TIME = Fraction(10_900, 1000000000)
+NTSC_BT470_LINE_BLANKING_TIME = Fraction(10_900, 1_000_000_000)
 NTSC_BT470_LINE_ACTIVE_TIME = (
     NTSC_LINE_TIME
     - NTSC_BT470_LINE_BLANKING_TIME
@@ -35,6 +35,13 @@ NTSC_BT470_LINE_ACTIVE_TIME = (
 NTSC_BT470_LINE_ACTIVE_BT601_SAMPLES = (
     # Fraction(14217, 20) or 710.85
     NTSC_BT470_LINE_ACTIVE_TIME
+    * BT601_SAMPLE_RATE
+)
+
+NTSC_POYNTON_LINE_ACTIVE_TIME = (52 + Fraction(8, 9)) / 1_000_000
+NTSC_POYNTON_LINE_ACTIVE_BT601_SAMPLES = (
+    # Exactly 714
+    NTSC_POYNTON_LINE_ACTIVE_TIME
     * BT601_SAMPLE_RATE
 )
 
@@ -91,7 +98,7 @@ def resample_bt601_as_4fsc(
 
     The BT.601 spec outlines expected colorimetry of the transported video
     content. However, this function leaves colorimetry untouched, focusing on
-    sample rates and picture geometry. Additionaly note, the output clip
+    sample rates and picture geometry. Additionaly, note the output clip
     comprises decoded video samples (e.g. Gray, R′G′B′, or Y′CbCr) and not pure
     4fSC signal sample values.
     """
