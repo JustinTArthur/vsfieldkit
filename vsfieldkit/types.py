@@ -3,11 +3,11 @@ from enum import Enum
 from fractions import Fraction
 from typing import Callable, Union
 
-from vapoursynth import PresetFormat, VideoFormat, VideoNode
+from vapoursynth import PresetVideoFormat, VideoFormat, VideoNode
 
 Factor = Union[int, float, Decimal, Fraction]
 
-FormatSpecifier = Union[PresetFormat, VideoFormat, VideoNode, int]
+FormatSpecifier = Union[PresetVideoFormat, VideoFormat, VideoNode, int]
 
 Resizer = Callable[..., VideoNode]
 """A function following the same signature as VapourSynth's built in
