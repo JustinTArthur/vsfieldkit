@@ -2,8 +2,10 @@ Changelog
 =========
 Next Release
 ------------
-:py:func:`vsfieldkit.prepare_nnedi3_chroma_upsampler` can now use the znedi3
-or nnedi3cl plugin in addition to plain nnedi3 as before.
+* :py:func:`vsfieldkit.prepare_nnedi3_chroma_upsampler` can now use the znedi3
+  or nnedi3cl plugin in addition to plain nnedi3 as before.
+* Add compatibility with VapourSynth>=63 Python wrapper, broken due to renamed
+  ``PresetVideoFormat`` enum.
 
 2.0.1
 -----

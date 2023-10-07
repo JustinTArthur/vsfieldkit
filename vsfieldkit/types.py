@@ -3,7 +3,12 @@ from enum import Enum
 from fractions import Fraction
 from typing import Callable, Union
 
-from vapoursynth import PresetVideoFormat, VideoFormat, VideoNode
+from vapoursynth import VideoFormat, VideoNode
+
+try:
+    from vapoursynth import PresetVideoFormat
+except ImportError:
+    from vapoursynth import PresetFormat as PresetVideoFormat
 
 Factor = Union[int, float, Decimal, Fraction]
 
