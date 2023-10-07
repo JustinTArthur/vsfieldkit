@@ -1,7 +1,11 @@
 from typing import Callable, Optional, Union
 
-from vapoursynth import (ColorFamily, Error, PresetVideoFormat, VideoFormat,
-                         VideoNode, core)
+from vapoursynth import ColorFamily, Error, VideoFormat, VideoNode, core
+
+try:
+    from vapoursynth import PresetVideoFormat
+except ImportError:
+    from vapoursynth import PresetFormat as PresetVideoFormat
 
 from vsfieldkit.types import Resizer
 from vsfieldkit.util import (annotate_bobbed_fields, convert_format_if_needed,
