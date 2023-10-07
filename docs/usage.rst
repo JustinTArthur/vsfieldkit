@@ -460,7 +460,7 @@ Repair
         If the clip to repair has been up-sampled for editing (e.g. from
         YUV420P8 to YUV422P16), pass in the original clip's format here
         so that correct assumptions are made for damage repair decisions.
-    :type original_format: PresetFormat, VideoFormat, VideoNode or int
+    :type original_format: PresetVideoFormat, VideoFormat, VideoNode or int
 
     :param bool restore_blank_detail:
         In rare cases where the black bars contain salvageable image data, this

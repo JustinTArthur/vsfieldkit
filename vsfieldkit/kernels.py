@@ -1,6 +1,6 @@
 from typing import Callable, Optional, Union
 
-from vapoursynth import (ColorFamily, Error, PresetFormat, VideoFormat,
+from vapoursynth import (ColorFamily, Error, PresetVideoFormat, VideoFormat,
                          VideoNode, core)
 
 from vsfieldkit.types import Resizer
@@ -76,7 +76,7 @@ def prepare_nnedi3_chroma_upsampler(
             
     def upsample_chroma_using_nnedi3(
         clip: VideoNode,
-        format: Union[VideoFormat, PresetFormat] = None,
+        format: Union[VideoFormat, PresetVideoFormat] = None,
         *resize_args,
         **resize_kwargs
     ) -> VideoNode:
