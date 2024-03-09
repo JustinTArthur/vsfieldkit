@@ -14,16 +14,31 @@ NTSC_LINE_FREQ = Fraction(2, 455) * NTSC_SUBCARRIER_FREQ
 NTSC_FIELD_FREQ = Fraction(2, 525) * NTSC_LINE_FREQ
 NTSC_LINE_TIME = 1 / NTSC_LINE_FREQ
 
-NTSC_170M_LEAD_BLANKING_TIME = Fraction(1_500, 1_000_000_000)
-NTSC_170M_TAIL_BLANKING_TIME = Fraction(9_200, 1_000_000_000)
-NTSC_170M_LINE_BLANKING_TIME = (
-    NTSC_170M_LEAD_BLANKING_TIME
-    + NTSC_170M_TAIL_BLANKING_TIME
+NTSC_ST170_LEAD_BLANKING_TIME = Fraction(9_200, 1_000_000_000)
+NTSC_ST170_TAIL_BLANKING_TIME = Fraction(1_500, 1_000_000_000)
+NTSC_ST170_LINE_BLANKING_TIME = (
+    NTSC_ST170_LEAD_BLANKING_TIME
+    + NTSC_ST170_TAIL_BLANKING_TIME
 )
-NTSC_170M_LINE_ACTIVE_TIME = NTSC_LINE_TIME - NTSC_170M_LINE_BLANKING_TIME
-NTSC_170M_ACTIVE_BT601_SAMPLES = (
+NTSC_ST170_LINE_ACTIVE_TIME = NTSC_LINE_TIME - NTSC_ST170_LINE_BLANKING_TIME
+NTSC_ST170_ACTIVE_BT601_SAMPLES = (
     # Fraction(14271, 20) or 713.55
-    NTSC_170M_LINE_ACTIVE_TIME
+    NTSC_ST170_LINE_ACTIVE_TIME
+    * BT601_SAMPLE_RATE
+)
+
+NTSC_BT601_LEAD_BLANKING_SAMPLES = 122  # From 0H
+NTSC_BT601_LEAD_BLANKING_TIME = Fraction(
+    NTSC_BT601_LEAD_BLANKING_SAMPLES,
+    BT601_SAMPLE_RATE
+)
+NTSC_ST170_ACTIVE_BT601_PAD_LEAD_TIME = (
+    NTSC_ST170_LEAD_BLANKING_TIME
+    - NTSC_BT601_LEAD_BLANKING_TIME
+)
+# Samples between start of BT.601 active area and start of ST 170 active area:
+NTSC_ST170_ACTIVE_BT601_PAD_LEAD_SAMPLES = (
+    NTSC_ST170_ACTIVE_BT601_PAD_LEAD_TIME
     * BT601_SAMPLE_RATE
 )
 
@@ -65,9 +80,9 @@ PAL_ACTIVE_BT601_SAMPLES = (
     * BT601_SAMPLE_RATE
 )
 NTSC_4FSC = 4 * NTSC_SUBCARRIER_FREQ
-NTSC_4FSC_ACTIVE_WIDTH = NTSC_4FSC * NTSC_170M_LINE_ACTIVE_TIME
+NTSC_ST170_ACTIVE_4FSC_SAMPLES = NTSC_4FSC * NTSC_ST170_LINE_ACTIVE_TIME
 # Fraction(33299, 44) or 756.7954545454545
-# Some tools use 758 as a multiple of 8
+# Some tools use 768 as a multiple of 8
 NTSC_4FSC_ACTIVE_HEIGHT = 486  # TODO: exact
 
 PAL_4FSC = 4 * PAL_SUBCARRIER_FREQ
@@ -111,8 +126,8 @@ def resample_bt601_as_4fsc(
         target_active_width = PAL_4FSC_ACTIVE_WIDTH
         src_original_top = None
     elif clip.height == 480:
-        src_active_width = NTSC_170M_ACTIVE_BT601_SAMPLES
-        target_active_width = NTSC_4FSC_ACTIVE_WIDTH
+        src_active_width = NTSC_ST170_ACTIVE_BT601_SAMPLES
+        target_active_width = NTSC_ST170_ACTIVE_4FSC_SAMPLES
         # Assume vertical SMPTE RP 202 crop of ST 170M NTSC for compression.
         # This is 5 lines below the 486i start.
         src_original_top = -5
@@ -121,7 +136,7 @@ def resample_bt601_as_4fsc(
     elif clip.height == 486:
         # Full height of SMPTE 170M active video
         src_active_width = NTSC_170M_ACTIVE_BT601_SAMPLES
-        target_active_width = NTSC_4FSC_ACTIVE_WIDTH
+        target_active_width = NTSC_ST170_ACTIVE_4FSC_SAMPLES
         src_original_top = None
     else:
         raise Error('480i, 486i, or 576i height required for BT.601 source')
